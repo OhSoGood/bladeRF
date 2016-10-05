@@ -23,7 +23,8 @@ function usage()
     echo "Supported revisions:"
     echo "    hosted"
     echo "    atsc_tx"
-
+    echo "    ble"
+    
     # These revisions were for used for early prototyping and testing. They
     # require some work to get building with the current design. As such,
     # they have been removed for this list for the time being to avoid
@@ -139,7 +140,7 @@ if [ "$rev" == "" ]; then
     exit 1
 fi
 
-if [ "$rev" != "hosted" ] && [ "$rev" != "atsc_tx" ] && [ "$rev" != "adsb" ] ; then
+if [ "$rev" != "hosted" ] && [ "$rev" != "atsc_tx" ] && [ "$rev" != "adsb" ] && [ "$rev" != "ble" ]; then
     echo -e "\nError: Invalid revision (\"$rev\")\n" >&2
     usage
     exit 1

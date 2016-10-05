@@ -84,6 +84,9 @@ make_revision atsc_tx
 # Create ADSB receiver
 make_revision adsb
 
+# Create Bluetooth LE
+make_revision ble
+
 # Projects created!
 puts "bladeRF projects created.  Please use the build.tcl script to build images.\n"
 puts "Revisions:"
