@@ -244,9 +244,9 @@ architecture ble_bladerf of bladerf is
     signal rx_sample_corrected_q : signed(15 downto 0);
     signal rx_sample_corrected_valid : std_logic;
 
-    signal rx_sample_traced_i : signed(15 downto 0);
-    signal rx_sample_traced_q : signed(15 downto 0);
-    signal rx_sample_traced_valid : std_logic;
+    signal rx_sample_btle_i : signed(15 downto 0);
+    signal rx_sample_btle_q : signed(15 downto 0);
+    signal rx_sample_btle_valid : std_logic;
 
     signal led1_blink : std_logic;
 
@@ -681,25 +681,25 @@ begin
         meta_fifo_data      =>  rx_meta_fifo.wdata,
         meta_fifo_write     =>  rx_meta_fifo.wreq,
 
-        in_i                =>  rx_sample_traced_i,
-        in_q                =>  rx_sample_traced_q,
-        in_valid            =>  rx_sample_traced_valid,
+        in_i                =>  rx_sample_btle_i,
+        in_q                =>  rx_sample_btle_q,
+        in_valid            =>  rx_sample_btle_valid,
 
         overflow_led        =>  rx_overflow_led,
         overflow_count      =>  rx_overflow_count,
         overflow_duration   =>  x"ffff"
       ) ;
 
-	U_rx_tracer : entity work.btle_iq_tracer
+	U_rx_btle : entity work.btle_channel_receiver
 	port map (
         clock               =>  rx_clock,
         reset               =>  rx_reset,
         in_real 			=>  rx_sample_corrected_i,
         in_imag 			=>  rx_sample_corrected_q,
         in_valid 			=>  rx_sample_corrected_valid,
-        out_real 			=>  rx_sample_traced_i,
-        out_imag 			=>  rx_sample_traced_q,
-        out_valid 			=>  rx_sample_traced_valid
+        out_real 			=>  rx_sample_btle_i,
+        out_imag 			=>  rx_sample_btle_q,
+        out_valid 			=>  rx_sample_btle_valid
 	);
 
 
