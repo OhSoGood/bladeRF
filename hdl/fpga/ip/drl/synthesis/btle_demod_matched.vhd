@@ -52,8 +52,8 @@ begin
 		variable phase : natural range 0 to samples_per_bit;
 		variable new_sample : complex_i16;
 
-		variable sum_lower : complex_i32;
-		variable sum_upper : complex_i32;
+		variable sum_lower : complex_i32 := (0,0);
+		variable sum_upper : complex_i32 := (0,0);
 
 		variable upper_sq : uint32;
 		variable lower_sq : uint32;

@@ -8,17 +8,17 @@ entity btle_delay_line is
   		L                 : integer := 1200
   	);
 	port(
-  		clock             : in  std_logic;
-  		sync_reset      : in  std_logic;
-  		in_data           : in  std_logic_vector(W-1 downto 0);
-  		out_data          : out std_logic_vector(W-1 downto 0)
+  		clock: 		in  std_logic;
+  		sync_reset: in  std_logic;
+  		in_data: 	in  std_logic_vector(W - 1 downto 0);
+  		out_data: 	out std_logic_vector(W - 1 downto 0)
   	);
 
 end btle_delay_line;
 
 architecture rtl of btle_delay_line is
 
-	type t_ram is array (L-2 downto 0) of std_logic_vector(W-1 downto 0);
+	type t_ram is array (L - 2 downto 0) of std_logic_vector(W - 1 downto 0);
 	signal m_ram : t_ram;
 
 	signal r_addr_wr         : integer range 0 to L-2;
@@ -28,43 +28,49 @@ architecture rtl of btle_delay_line is
 begin
 
 	p_write : 
-	process (clock)
+	process (clock, sync_reset)
 		begin
-  			if rising_edge(clock) then
-    			if(sync_reset = '1') then
-      				r_addr_wr <= 0;
-      				r_enable_read <= '0';
-    			else
-      				m_ram(r_addr_wr) <= in_data;
+			if(sync_reset = '1') then
 
-      				if(r_addr_wr < L - 2) then
-        				r_addr_wr <= r_addr_wr + 1;
-      				else
-        				r_addr_wr <= 0;
-        				r_enable_read <= '1';       -- enable reading section
-      				end if;
-    			end if;
+				r_addr_wr <= 0;
+      			r_enable_read <= '0';
+		
+  			elsif rising_edge(clock) then
+    			
+      			m_ram(r_addr_wr) <= in_data;
+
+      			if(r_addr_wr < L - 2) then
+        			r_addr_wr <= r_addr_wr + 1;
+      			else
+        			r_addr_wr <= 0;
+        			r_enable_read <= '1';
+      			end if;
   			end if;
 		end 
 	process p_write;
 
 	p_read : 
-	process (clock)
+	process (clock, sync_reset)
 		begin
-  			if rising_edge(clock) then
-    			if(sync_reset = '1') then
-      				r_addr_rd <= 0;
-    			else
-      				if(r_enable_read = '1') then
-        				out_data <= m_ram(r_addr_rd) ; -- additional delay
+			if(sync_reset = '1') then
 
-        				if(r_addr_rd< L - 2) then
-          					r_addr_rd <= r_addr_rd + 1;
-        				else
-          					r_addr_rd <= 0;
-        				end if;
-      				end if;
+		    	r_addr_rd <= 0;
+		    	out_data <= (others => '0');
+		      				
+  			elsif rising_edge(clock) then
+
+      			if(r_enable_read = '1') then
+
+        			out_data <= m_ram(r_addr_rd);
+
+        			if(r_addr_rd < L - 2) then
+          				r_addr_rd <= r_addr_rd + 1;
+        			else
+          				r_addr_rd <= 0;
+        			end if;
+        			
     			end if;
+    			
   			end if;
 		end 
 	process p_read;

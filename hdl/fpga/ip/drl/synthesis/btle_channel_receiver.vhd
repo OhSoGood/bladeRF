@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 
 use work.btle_complex.all;
 use work.btle_common.all;
---use work.btle_delay_line.all;
+
 
 entity btle_channel_receiver is
 	generic(
@@ -19,6 +19,7 @@ entity btle_channel_receiver is
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
 
+		out_detected:   out std_logic;
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
 		out_valid:      out std_logic
@@ -27,6 +28,9 @@ end btle_channel_receiver;
 
 
 architecture rtl of btle_channel_receiver is
+
+	signal newest_sample : std_logic_vector(31 downto 0) := (others => '0');
+	signal oldest_sample : std_logic_vector(31 downto 0);
 
 	signal demod_real:	signed(15 downto 0) := (others => '0');
 	signal demod_imag: signed(15 downto 0) := (others => '0');
@@ -40,9 +44,22 @@ architecture rtl of btle_channel_receiver is
 
 begin
 
+
+
+	delay:
+	entity work.btle_delay_line
+	generic map( W => 32, L => 852 )
+	--generic map( W => 32, L => 8 )
+	port map (
+		clock => clock,
+		sync_reset => reset,
+		in_data => newest_sample,
+		out_data => oldest_sample
+	);
+
 	demod: 
 	entity work.btle_demod_matched 
-	port map(
+	port map (
     	clock => clock,
     	reset => reset,
         in_real => demod_real,
@@ -54,7 +71,7 @@ begin
 
    	detect: 
    	entity work.btle_aa_detector 
-   	port map(
+   	port map (
     	clock => clock,
     	reset => reset,
 		in_bit => bits,
@@ -70,10 +87,13 @@ begin
 		
 		begin
 			if reset = '1' then
-			
+
+				newest_sample <= (others => '0');
+
 				out_real <= (others => '0');
 				out_imag <= (others => '0');
 				out_valid <= '0';
+				out_detected <= '0';
 
 				demod_real <= (others => '0');
 				demod_imag <= (others => '0');
@@ -82,22 +102,22 @@ begin
 			elsif rising_edge(clock) then
 
 				out_valid <= '0';
-				demod_valid <= '1';
+				demod_valid <= '0';
 				
 				if in_valid = '1' then		
+							
+  					newest_sample <=  std_logic_vector(in_imag & in_real);	
 
-					-- 'low' (index [0]) is the oldest sample
-					-- 'high' is the newest sample
-					out_real <= to_signed(sample_memory(sample_memory'low).real, 16);
-  					out_imag <= to_signed(sample_memory(sample_memory'low).imag, 16);
+					demod_real <= signed(oldest_sample(15 downto 0));
+					demod_imag <= signed(oldest_sample(31 downto 16));
+	
+					out_real <= signed(oldest_sample(15 downto 0));
+					out_imag <= signed(oldest_sample(31 downto 16));
 
-					demod_real <= to_signed(sample_memory(65).real, 16);
-					demod_imag <= to_signed(sample_memory(65).imag, 16);				
-			
-  					new_sample := (to_integer(in_real), to_integer(in_imag));	
-  					sample_memory := new_sample & sample_memory(sample_memory'high downto 1);
-
+					demod_valid <= '1';
   					out_valid <= '1';
+
+					out_detected <= out_detected xor detection;
   					
 				end if;
 			end if;
