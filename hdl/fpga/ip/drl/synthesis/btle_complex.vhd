@@ -49,13 +49,16 @@ package body btle_complex is
 	end;
 	
 	function mul(left, right : complex_i16; s: natural) return complex_i32 is
-		variable k1 : int32 := left.real *  (right.real + right.imag);
-		variable k2 : int32 := right.imag * (left.real + left.imag);
-		variable k3 : int32 := right.real * (left.imag - left.real);
-		variable d1 : int32 := k1 - k2;
-		variable d2 : int32 := k1 + k3;
+		variable k1 : int32;
+		variable k2 : int32;
+		variable k3 : int32;
 	begin
-		return (d1 / 2 ** s, d2 / 2 ** s);
+
+		k1 := left.real *  (right.real + right.imag);
+		k2 := right.imag * (left.real + left.imag);
+		k3 := right.real * (left.imag - left.real);
+	
+		return ((k1 - k2) / (2 ** s), (k1 + k3) / (2 ** s));
 	end;
 
 end;

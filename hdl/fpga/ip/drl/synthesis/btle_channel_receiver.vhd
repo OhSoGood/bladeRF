@@ -19,7 +19,7 @@ entity btle_channel_receiver is
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
 
-		out_detected:   out std_logic;
+		out_detected:   buffer std_logic;
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
 		out_valid:      out std_logic
@@ -44,12 +44,9 @@ architecture rtl of btle_channel_receiver is
 
 begin
 
-
-
 	delay:
 	entity work.btle_delay_line
 	generic map( W => 32, L => 852 )
-	--generic map( W => 32, L => 8 )
 	port map (
 		clock => clock,
 		sync_reset => reset,
@@ -83,7 +80,6 @@ begin
 	process(clock, reset) is
 
 		variable sample_memory: sample_array_type;
-		variable new_sample : complex_i16;
 		
 		begin
 			if reset = '1' then

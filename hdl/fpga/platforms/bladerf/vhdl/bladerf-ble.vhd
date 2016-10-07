@@ -247,6 +247,7 @@ architecture ble_bladerf of bladerf is
     signal rx_sample_btle_i : signed(15 downto 0);
     signal rx_sample_btle_q : signed(15 downto 0);
     signal rx_sample_btle_valid : std_logic;
+	signal btle_detected : std_logic := '1';
 
     signal led1_blink : std_logic;
 
@@ -699,7 +700,8 @@ begin
         in_valid 			=>  rx_sample_corrected_valid,
         out_real 			=>  rx_sample_btle_i,
         out_imag 			=>  rx_sample_btle_q,
-        out_valid 			=>  rx_sample_btle_valid
+        out_valid 			=>  rx_sample_btle_valid,
+        out_detected        =>  btle_detected
 	);
 
 
@@ -1055,7 +1057,7 @@ begin
     end process ;
 
     led(1) <= led1_blink        when nios_gpio(15) = '0' else not nios_gpio(12);
-    led(2) <= tx_underflow_led  when nios_gpio(15) = '0' else not nios_gpio(13);
+    led(2) <= btle_detected      when nios_gpio(15) = '0' else not nios_gpio(13);
     led(3) <= rx_overflow_led   when nios_gpio(15) = '0' else not nios_gpio(14);
 
     lms_reset               <= nios_gpio(0) ;
