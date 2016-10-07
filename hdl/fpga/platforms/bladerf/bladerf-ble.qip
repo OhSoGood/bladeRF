@@ -25,9 +25,14 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/nuand/synthesis/lms6002d/vhdl/lms6002d.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/nuand/trigger/trigger.vhd]]
 
+
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_receiver.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_common.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_complex.vhd]]
-set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_receiver.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_delay_line.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_matched.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_aa_detector.vhd]]
+
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/fx3_gpif.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/bladerf-ble.vhd]]
