@@ -55,9 +55,15 @@ begin
 		variable sum_lower : complex_i32 := (0,0);
 		variable sum_upper : complex_i32 := (0,0);
 
-		variable upper_sq : uint32;
-		variable lower_sq : uint32;
+		variable upper_sq : signed(31 downto 0);
+		variable lower_sq : signed(31 downto 0);
 
+		variable slr : signed(15 downto 0);
+		variable sli : signed(15 downto 0);
+		variable sur : signed(15 downto 0);
+		variable sui : signed(15 downto 0);
+		
+		
 		begin
 			if reset = '1' then
 			
@@ -82,8 +88,19 @@ begin
 					
 					if phase = samples_per_bit then
 
-						upper_sq := sum_upper.real * sum_upper.real + sum_upper.imag * sum_upper.imag;
-						lower_sq := sum_lower.real * sum_lower.real + sum_lower.imag * sum_lower.imag;
+						slr := to_signed(sum_lower.real, 16);
+						sli := to_signed(sum_lower.imag, 16);					
+		
+						sur := to_signed(sum_upper.real, 16);
+						sui := to_signed(sum_upper.imag, 16);						
+					
+						upper_sq := sur*sur + sui*sui;
+						lower_sq := slr*slr + sli*sli;
+					
+						--upper_sq := to_signed(sum_upper.real * sum_upper.real, 32) + to_signed(sum_upper.imag * sum_upper.imag, 32);
+						--lower_sq := to_signed(sum_lower.real * sum_lower.real, 32) + to_signed(sum_lower.imag * sum_lower.imag, 32);
+						--upper_sq := sum_upper.real * sum_upper.real + sum_upper.imag * sum_upper.imag;
+						--lower_sq := sum_lower.real * sum_lower.real + sum_lower.imag * sum_lower.imag;
 
 						out_bit <= '0';
 						
