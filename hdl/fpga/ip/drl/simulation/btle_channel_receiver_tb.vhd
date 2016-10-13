@@ -26,6 +26,7 @@ architecture testbench of btle_channel_receiver_tb is
     signal in_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal in_valid: std_logic := '0';
 
+	signal out_detected: std_logic;
     signal out_real: signed(15 downto 0) := to_signed(0, 16);
     signal out_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal out_valid: std_logic := '0';
@@ -47,11 +48,12 @@ begin
 
 		out_real => out_real,
 		out_imag => out_imag,
-		out_valid => out_valid
+		out_valid => out_valid,
+		out_detected  => out_detected
 	);
 
 	iq: entity work.btle_iq_streamer 
-	generic map(filepath => TB_DATA_PATH & "aa_samples.txt")
+	generic map(filepath => TB_DATA_PATH & "brf_samples.txt")
 	port map(
 		clock => clock,
 		reset => reset,
