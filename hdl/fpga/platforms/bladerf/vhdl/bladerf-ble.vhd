@@ -692,6 +692,7 @@ begin
       ) ;
 
 	U_rx_btle : entity work.btle_channel_receiver
+	generic map(samples_per_bit => 2)
 	port map (
         clock               =>  rx_clock,
         reset               =>  rx_reset,

@@ -26,13 +26,15 @@ architecture testbench of btle_channel_receiver_tb is
     signal in_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal in_valid: std_logic := '0';
 
-	signal out_detected: std_logic;
+	signal out_detected: std_logic := '0';
     signal out_real: signed(15 downto 0) := to_signed(0, 16);
     signal out_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal out_valid: std_logic := '0';
 
 	signal iq_enable : std_logic := '0';
 	signal iq_complete : std_logic := '0';
+
+	shared variable detections : integer := 0;
 	
 begin
 
@@ -53,7 +55,7 @@ begin
 	);
 
 	iq: entity work.btle_iq_streamer 
-	generic map(filepath => TB_DATA_PATH & "brf_samples.txt")
+	generic map(filepath => TB_DATA_PATH & "aa_samples.txt")
 	port map(
 		clock => clock,
 		reset => reset,
@@ -79,7 +81,7 @@ begin
 			wait until iq_complete;
 			iq_enable <= '0';
 
-			--assert detections = 1 report "Failed to detect exactly 1 AA burst"  severity failure;
+			assert detections = 1 report "Failed to detect exactly 1 AA burst"  severity failure;
 			
         	report("End of testbench. All tests passed.");
         	test_runner_cleanup(runner);
@@ -87,28 +89,27 @@ begin
     	end 
     process;
 
---	checker:
---	process(clock, reset)
---		variable sample_index : integer := 0;
---		begin
---			if reset = '1' then
+	checker:
+	process(clock, reset)
+		variable sample_index : integer := 0;
+		begin
+			if reset = '1' then
 
---				sample_index := 0;
---				detections := 0;
---
---			elsif rising_edge(clock) then
---
---				if iq_valid = '1' then
---					sample_index := sample_index + 1;
---				end if;
+				sample_index := 0;
+				detections := 0;
+
+			elsif rising_edge(clock) then
+
+				if out_valid = '1' then
+					sample_index := sample_index + 1;
+				end if;
 				
---				if detection = '1' then
---					detections := detections + 1;
---					 report "Detected AA at sample: " & to_string(sample_index) & ". Total=" & to_string(detections);
---				end if;
---				
---
---			end if;
---		end
---	process;  
+				if out_detected = '1' then
+					detections := detections + 1;
+					 report "Detected AA at sample: " & to_string(sample_index) & ". Total=" & to_string(detections);
+				end if;
+
+			end if;
+		end
+	process;  
 end;
