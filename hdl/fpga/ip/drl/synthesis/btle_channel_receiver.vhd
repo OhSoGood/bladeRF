@@ -31,6 +31,9 @@ architecture rtl of btle_channel_receiver is
 
 	signal newest_sample_real : std_logic_vector(15 downto 0) := (others => '0');
 	signal newest_sample_imag : std_logic_vector(15 downto 0) := (others => '0');
+
+	signal demod_sample_real  : std_logic_vector(15 downto 0);
+	signal demod_sample_imag  : std_logic_vector(15 downto 0);
 	
 	signal oldest_sample_real : std_logic_vector(15 downto 0);
 	signal oldest_sample_imag : std_logic_vector(15 downto 0);
@@ -43,29 +46,29 @@ architecture rtl of btle_channel_receiver is
     signal bits_valid: std_logic := '0';
     signal detection : std_logic := '0';
 
-	type sample_array_type is array (851 downto 0) of complex_i16;
-
 begin
 
 	delay_real:
 	entity work.btle_delay_line
-	generic map( W => 16, L => 852 )
+	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )
 	port map (
 		clock => clock,
 		sync_reset => reset,
 		in_data => newest_sample_real,
-		out_data => oldest_sample_real
+		out_data => oldest_sample_real,
+		out_data_tap => demod_sample_real
 	);
 	
 	
 	delay_imag:
 	entity work.btle_delay_line
-	generic map( W => 16, L => 852 )
+	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )		
 	port map (
 		clock => clock,
 		sync_reset => reset,
 		in_data => newest_sample_imag,
-		out_data => oldest_sample_imag
+		out_data => oldest_sample_imag,
+		out_data_tap => demod_sample_imag
 	);
 
 	demod: 
@@ -92,9 +95,7 @@ begin
 
 	receiver: 
 	process(clock, reset) is
-
-		variable sample_memory: sample_array_type;
-		
+	
 		begin
 			if reset = '1' then
 
@@ -103,6 +104,7 @@ begin
 				
 				out_real <= (others => '0');
 				out_imag <= (others => '0');
+
 				out_valid <= '0';
 				out_detected <= '0';
 
@@ -116,21 +118,15 @@ begin
 				demod_valid <= '0';
 				
 				if in_valid = '1' then		
-
-					demod_real <=  in_real;
-					demod_imag <=  in_imag;
-
-					out_real <= in_real;
-					out_imag <= in_imag;
 					
--- 					newest_sample_real <=  std_logic_vector(in_real);	
---  				newest_sample_imag <=  std_logic_vector(in_imag);	
+ 					newest_sample_real <=  std_logic_vector(in_real);	
+  					newest_sample_imag <=  std_logic_vector(in_imag);	
 					
---					demod_real <= signed(oldest_sample_real);
---					demod_imag <= signed(oldest_sample_imag);
+					demod_real <= signed(demod_sample_real);
+					demod_imag <= signed(demod_sample_imag);
 
---					out_real <= signed(oldest_sample_real);
---					out_imag <= signed(oldest_sample_imag);
+					out_real <= signed(oldest_sample_real);
+					out_imag <= signed(oldest_sample_imag);
 				
 					demod_valid <= '1';
   					out_valid <= '1';

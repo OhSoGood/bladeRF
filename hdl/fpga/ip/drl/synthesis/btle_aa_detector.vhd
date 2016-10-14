@@ -28,7 +28,7 @@ begin
 	aa_detector:
 	process(clock, reset) is
 
-		variable memory: std_logic_vector (BTLE_DETECTOR_LEN - 1 downto 0);
+		variable memory: std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 	
 		begin
 			if reset = '1' then
@@ -46,7 +46,7 @@ begin
 					-- > Add new bit
 					-- > Check correlation
 
-					memory := memory(BTLE_DETECTOR_LEN - 2 downto 0) & in_bit;
+					memory := memory(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_bit;
 
 					if memory = BTLE_BED6 then
 						out_detect <= '1';
