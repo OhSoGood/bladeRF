@@ -7,7 +7,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.btle_complex.all;
 
 entity btle_demod_matched is
 	generic(
@@ -32,91 +31,160 @@ end btle_demod_matched;
 architecture rtl of btle_demod_matched is
 
 	type filter_ref_type is record
-		f_upper: complex_i16;
-		f_lower: complex_i16;
+		f_upper_real: signed(15 downto 0);
+		f_upper_imag: signed(15 downto 0);
+		f_lower_real: signed(15 downto 0);
+		f_lower_imag: signed(15 downto 0);
 	end record;
 	
 	type filter_ref_array_type is array (natural range <>) of
 		filter_ref_type;
 
 	constant FILTER_REF: filter_ref_array_type := (
-    	( (8192,    0), (8192,     0) ),
-		( (5792, 5792), (5792, -5792) )    	
+    	( to_signed(8191, 16),    to_signed(0, 16), 		to_signed(8191, 16),  to_signed(0, 16) ),
+		( to_signed(5792, 16),    to_signed(5792, 16), 		to_signed(5792, 16),  to_signed(-5792, 16) )    	  	
 	);
 
 
+	signal mul_lower_real: signed(31 downto 0);
+	signal mul_lower_imag: signed(31 downto 0);
+	signal mul_upper_real: signed(31 downto 0);
+	signal mul_upper_imag: signed(31 downto 0);
+	signal mul_valid : std_logic := '0';
+	signal mul_phase : natural range 0 to samples_per_bit - 1 := 0;
+
+	signal sum_lower_real : signed(15 downto 0);
+	signal sum_lower_imag : signed(15 downto 0);
+	signal sum_upper_real : signed(15 downto 0);
+	signal sum_upper_imag : signed(15 downto 0);
+	signal sum_valid : std_logic := '0';
+
 begin
-	matched_filter: 
-	process(clock, reset) is
+	multiply: 
+	process(clock, reset) is		
 
-		variable phase : natural range 0 to samples_per_bit;
-		variable new_sample : complex_i16;
+		variable phase : natural range 0 to samples_per_bit - 1;
 
-		variable sum_lower : complex_i32 := (0,0);
-		variable sum_upper : complex_i32 := (0,0);
-
-		variable upper_sq : signed(31 downto 0);
-		variable lower_sq : signed(31 downto 0);
-
-		variable slr : signed(15 downto 0);
-		variable sli : signed(15 downto 0);
-		variable sur : signed(15 downto 0);
-		variable sui : signed(15 downto 0);
-		
-		
 		begin
 			if reset = '1' then
-			
-				phase := 0;
-				sum_upper := (0, 0);
-				sum_lower := (0, 0);
 
-				out_bit <= '0';
-				out_valid <= '0';
+				phase := 0;
 				
+				mul_valid <= '0';
+				mul_phase <= phase;
+				mul_lower_real <= (others => '0');
+				mul_lower_imag <= (others => '0');	
+				mul_upper_real <= (others => '0');
+				mul_upper_imag <= (others => '0');
+			
 			elsif rising_edge(clock) then
 
+				mul_valid <= '0';
+
 				if in_valid = '1' then
-				
-					new_sample := (to_integer(in_real), to_integer(in_imag));			
-					sum_upper := sum_upper + mul(new_sample, FILTER_REF(phase).f_upper, 13);
-					sum_lower := sum_lower + mul(new_sample, FILTER_REF(phase).f_lower, 13);
 
-					phase := phase + 1;
-					
-					out_valid <= '0';
-					
-					if phase = samples_per_bit then
+					mul_lower_real <= in_real * FILTER_REF(phase).f_lower_real - in_imag * FILTER_REF(phase).f_lower_imag;
+					mul_lower_imag <= in_real * FILTER_REF(phase).f_lower_imag + in_imag * FILTER_REF(phase).f_lower_real;
+					mul_upper_real <= in_real * FILTER_REF(phase).f_upper_real - in_imag * FILTER_REF(phase).f_upper_imag;
+					mul_upper_imag <= in_real * FILTER_REF(phase).f_upper_imag + in_imag * FILTER_REF(phase).f_upper_real;
 
-						slr := to_signed(sum_lower.real, 16);
-						sli := to_signed(sum_lower.imag, 16);					
-		
-						sur := to_signed(sum_upper.real, 16);
-						sui := to_signed(sum_upper.imag, 16);						
-					
-						upper_sq := sur*sur + sui*sui;
-						lower_sq := slr*slr + sli*sli;
-					
-						--upper_sq := to_signed(sum_upper.real * sum_upper.real, 32) + to_signed(sum_upper.imag * sum_upper.imag, 32);
-						--lower_sq := to_signed(sum_lower.real * sum_lower.real, 32) + to_signed(sum_lower.imag * sum_lower.imag, 32);
-						--upper_sq := sum_upper.real * sum_upper.real + sum_upper.imag * sum_upper.imag;
-						--lower_sq := sum_lower.real * sum_lower.real + sum_lower.imag * sum_lower.imag;
+					mul_phase <= phase;						
+					mul_valid <= '1';
 
-						out_bit <= '0';
-						
-						if(upper_sq < lower_sq) then
-							out_bit <= '1';
-						end if;
-
-						out_valid <= '1';
-
+					if phase = 0 then
+						phase := 1;
+					else
 						phase := 0;
-						sum_upper := (0, 0);
-						sum_lower := (0, 0);	
 					end if;
+
 				end if;
 			end if;
 		end 
+	process;
+
+	accumulate:
+	process(clock, reset) is
+
+		variable slr : signed(31 downto 0);
+		variable sli : signed(31 downto 0);
+		variable sur : signed(31 downto 0);
+		variable sui : signed(31 downto 0);
+	
+		begin
+			if reset = '1' then
+			
+				sum_valid <= '0';
+				sum_lower_real <= (others => '0');
+				sum_lower_imag <= (others => '0');	
+				sum_upper_real <= (others => '0');
+				sum_upper_imag <= (others => '0');
+
+			elsif rising_edge(clock) then
+
+				sum_valid <= '0';
+
+				if mul_valid = '1' then
+
+					if mul_phase = 0 then
+					
+						slr := (others => '0');
+						sli := (others => '0');
+						sur := (others => '0');
+						sui := (others => '0');
+
+					end if;
+
+					slr := slr + mul_lower_real;
+					sli := sli + mul_lower_imag;
+					sur := sur + mul_upper_real;
+					sui := sui + mul_upper_imag;
+
+					if mul_phase = 1 then
+					
+						sum_lower_real <= slr (31 downto 16);
+						sum_lower_imag <= sli (31 downto 16);
+						sum_upper_real <= sur (31 downto 16);
+						sum_upper_imag <= sui (31 downto 16);
+
+						sum_valid <= '1';
+						
+					end if;
+				end if;
+			end if;
+		end
+	process;
+			
+
+	decision:
+	process(clock, reset) is
+
+		variable upper_sq : unsigned(31 downto 0);
+		variable lower_sq : unsigned(31 downto 0);
+	
+		begin
+			if reset = '1' then
+			
+				out_bit <= '0';
+				out_valid <= '0';
+
+			elsif rising_edge(clock) then
+
+				out_valid <= '0';
+				out_bit <= '0';
+
+				if sum_valid = '1' then
+				
+					upper_sq := unsigned(sum_upper_real * sum_upper_real + sum_upper_imag * sum_upper_imag);
+					lower_sq := unsigned(sum_lower_real * sum_lower_real + sum_lower_imag * sum_lower_imag);
+				
+					if(upper_sq < lower_sq) then
+						out_bit <= '1';
+					end if;
+
+					out_valid <= '1';
+				end if;
+			end if;
+		end
 	process;
 end rtl;
 
