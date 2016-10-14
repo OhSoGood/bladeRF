@@ -31,25 +31,25 @@ end btle_demod_matched;
 architecture rtl of btle_demod_matched is
 
 	type filter_ref_type is record
-		f_upper_real: signed(15 downto 0);
-		f_upper_imag: signed(15 downto 0);
-		f_lower_real: signed(15 downto 0);
-		f_lower_imag: signed(15 downto 0);
+		f_upper_real: signed(7 downto 0);
+		f_upper_imag: signed(7 downto 0);
+		f_lower_real: signed(7 downto 0);
+		f_lower_imag: signed(7 downto 0);
 	end record;
 	
 	type filter_ref_array_type is array (natural range <>) of
 		filter_ref_type;
 
 	constant FILTER_REF: filter_ref_array_type := (
-    	( to_signed(8191, 16),    to_signed(0, 16), 		to_signed(8191, 16),  to_signed(0, 16) ),
-		( to_signed(5792, 16),    to_signed(5792, 16), 		to_signed(5792, 16),  to_signed(-5792, 16) )    	  	
+    	( to_signed(127, 8),    to_signed(0,  8), 		to_signed(127, 8),  to_signed(  0, 8) ),
+		( to_signed(90,  8),    to_signed(90, 8), 		to_signed(90,  8),  to_signed(-90, 8) )    	  	
 	);
 
 
-	signal mul_lower_real: signed(31 downto 0);
-	signal mul_lower_imag: signed(31 downto 0);
-	signal mul_upper_real: signed(31 downto 0);
-	signal mul_upper_imag: signed(31 downto 0);
+	signal mul_lower_real: signed(15 downto 0);
+	signal mul_lower_imag: signed(15 downto 0);
+	signal mul_upper_real: signed(15 downto 0);
+	signal mul_upper_imag: signed(15 downto 0);
 	signal mul_valid : std_logic := '0';
 	signal mul_phase : natural range 0 to samples_per_bit - 1 := 0;
 
@@ -64,6 +64,9 @@ begin
 	process(clock, reset) is		
 
 		variable phase : natural range 0 to samples_per_bit - 1;
+		variable mlr, mli, mur, mui : signed(19 downto 0);
+		variable scaled_in_real : signed(11 downto 0);
+		variable scaled_in_imag : signed(11 downto 0);
 
 		begin
 			if reset = '1' then
@@ -83,10 +86,18 @@ begin
 
 				if in_valid = '1' then
 
-					mul_lower_real <= in_real * FILTER_REF(phase).f_lower_real - in_imag * FILTER_REF(phase).f_lower_imag;
-					mul_lower_imag <= in_real * FILTER_REF(phase).f_lower_imag + in_imag * FILTER_REF(phase).f_lower_real;
-					mul_upper_real <= in_real * FILTER_REF(phase).f_upper_real - in_imag * FILTER_REF(phase).f_upper_imag;
-					mul_upper_imag <= in_real * FILTER_REF(phase).f_upper_imag + in_imag * FILTER_REF(phase).f_upper_real;
+					scaled_in_real := resize(in_real, 12);
+					scaled_in_imag := resize(in_imag, 12);
+				
+					mlr := scaled_in_real * FILTER_REF(phase).f_lower_real - scaled_in_imag * FILTER_REF(phase).f_lower_imag;
+					mli := scaled_in_real * FILTER_REF(phase).f_lower_imag + scaled_in_imag * FILTER_REF(phase).f_lower_real;
+					mur := scaled_in_real * FILTER_REF(phase).f_upper_real - scaled_in_imag * FILTER_REF(phase).f_upper_imag;
+					mui := scaled_in_real * FILTER_REF(phase).f_upper_imag + scaled_in_imag * FILTER_REF(phase).f_upper_real;
+
+					mul_lower_real <= mlr(19 downto 4);
+					mul_lower_imag <= mli(19 downto 4);
+					mul_upper_real <= mur(19 downto 4);
+					mul_upper_imag <= mui(19 downto 4);
 
 					mul_phase <= phase;						
 					mul_valid <= '1';
@@ -105,10 +116,10 @@ begin
 	accumulate:
 	process(clock, reset) is
 
-		variable slr : signed(31 downto 0);
-		variable sli : signed(31 downto 0);
-		variable sur : signed(31 downto 0);
-		variable sui : signed(31 downto 0);
+		variable slr : signed(16 downto 0);
+		variable sli : signed(16 downto 0);
+		variable sur : signed(16 downto 0);
+		variable sui : signed(16 downto 0);
 	
 		begin
 			if reset = '1' then
@@ -141,10 +152,10 @@ begin
 
 					if mul_phase = 1 then
 					
-						sum_lower_real <= slr (31 downto 16);
-						sum_lower_imag <= sli (31 downto 16);
-						sum_upper_real <= sur (31 downto 16);
-						sum_upper_imag <= sui (31 downto 16);
+						sum_lower_real <= slr (16 downto 1);
+						sum_lower_imag <= sli (16 downto 1);
+						sum_upper_real <= sur (16 downto 1);
+						sum_upper_imag <= sui (16 downto 1);
 
 						sum_valid <= '1';
 						
