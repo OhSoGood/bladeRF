@@ -18,7 +18,7 @@ entity btle_aa_detector is
 		in_valid:       in std_logic;
 
 		-- output bits
-		out_detect:		out std_logic := '0'
+		out_detect:		out std_logic
 	);
 end btle_aa_detector;
 

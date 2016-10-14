@@ -1058,7 +1058,7 @@ begin
     end process ;
 
     led(1) <= led1_blink        when nios_gpio(15) = '0' else not nios_gpio(12);
-    led(2) <= btle_detected      when nios_gpio(15) = '0' else not nios_gpio(13);
+    led(2) <= led(2) xor btle_detected when nios_gpio(15) = '0' else not nios_gpio(13);
     led(3) <= rx_overflow_led   when nios_gpio(15) = '0' else not nios_gpio(14);
 
     lms_reset               <= nios_gpio(0) ;

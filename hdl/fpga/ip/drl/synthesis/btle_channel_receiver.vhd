@@ -135,9 +135,10 @@ begin
 					demod_valid <= '1';
   					out_valid <= '1';
 
-					out_detected <= detection;
-  					
 				end if;
+
+				out_detected <= detection;
+				
 			end if;
 		end 
 	process;
