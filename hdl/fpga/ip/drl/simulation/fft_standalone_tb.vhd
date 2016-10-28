@@ -23,7 +23,7 @@ architecture testbench of fft_standalone_tb is
 	signal iq_enable: std_logic := '0';
 
 	signal clk: std_logic := '0';
-	signal reset_n: std_logic := '0';
+	signal reset: std_logic := '0';
 	signal fftpts_in : std_logic_vector (4 downto 0) := (others => '0'); 
 	signal fftpts_out : std_logic_vector (4 downto 0):= (others => '0'); 
 
@@ -76,7 +76,7 @@ begin
 	generic map(filepath => "simulation\\" & "basic_fft_in.txt")
 	port map(
 		clock => clk,
-		reset => not reset_n,
+		reset => reset,
 		enable => iq_enable,
 		iq_real => sink_real,
 		iq_imag => sink_imag,
@@ -87,7 +87,7 @@ begin
 	dut : component fft
 		port map (
 			clk          => clk,          --    clk.clk
-			reset_n      => reset_n,      --    rst.reset_n
+			reset_n      => not reset,      --    rst.reset_n
 			sink_valid   => sink_valid,   --   sink.sink_valid
 			sink_ready   => sink_ready,   --       .sink_ready
 			sink_error   => sink_error,   --       .sink_error
@@ -109,7 +109,7 @@ begin
 
 
     clk <= not clk after 15.625 ns;
-    reset_n <= '0', '1' after 100 ns;
+    reset <= '1', '0' after 100 ns;
     
     stimulus: 
     process
@@ -117,7 +117,7 @@ begin
     	begin
 			test_runner_setup(runner, runner_cfg);
 
-		   	wait until reset_n = '1';
+		   	wait until reset = '0';
 			wait until rising_edge(clk);
 
 			fftpts_in <= "10000";

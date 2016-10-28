@@ -11,7 +11,7 @@ entity btle_fft_streamer is
 	generic(order : integer);
 	port(
 		clock:			in std_logic;
-		reset_n:		in std_logic;
+		reset:			in std_logic;
 		enable:			in std_logic;
 
 		in_real:		in signed(15 downto 0);
@@ -77,33 +77,33 @@ begin
 
 	u_fft : component fft
 		port map (
-			clk          => clock,          --    clk.clk
-			reset_n      => reset_n,      --    rst.reset_n
-			sink_valid   => sink_valid,   --   sink.sink_valid
-			sink_ready   => sink_ready,   --       .sink_ready
-			sink_error   => sink_error,   --       .sink_error
-			sink_sop     => sink_sop,     --       .sink_sop
-			sink_eop     => sink_eop,     --       .sink_eop
-			sink_real    => sink_real,    --       .sink_real
-			sink_imag    => sink_imag,    --       .sink_imag
-			fftpts_in    => fftpts_in,    --       .fftpts_in
-			inverse      => inverse,      --       .inverse
-			source_valid => source_valid, -- source.source_valid
-			source_ready => source_ready, --       .source_ready
-			source_error => source_error, --       .source_error
-			source_sop   => source_sop,   --       .source_sop
-			source_eop   => source_eop,   --       .source_eop
-			source_real  => source_real,  --       .source_real
-			source_imag  => source_imag,  --       .source_imag
-			fftpts_out   => fftpts_out    --       .fftpts_out
+			clk          => clock,
+			reset_n      => not reset,
+			sink_valid   => sink_valid,
+			sink_ready   => sink_ready,
+			sink_error   => sink_error,
+			sink_sop     => sink_sop,
+			sink_eop     => sink_eop,
+			sink_real    => sink_real, 
+			sink_imag    => sink_imag,
+			fftpts_in    => fftpts_in,
+			inverse      => inverse,
+			source_valid => source_valid,
+			source_ready => source_ready,
+			source_error => source_error,
+			source_sop   => source_sop,
+			source_eop   => source_eop,
+			source_real  => source_real,
+			source_imag  => source_imag,
+			fftpts_out   => fftpts_out
 		);
 
 
 	input:
-	process(clock, reset_n) is
+	process(clock, reset) is
 		variable in_phase : integer;
 		begin
-			if reset_n = '0' then
+			if reset = '1' then
 				in_phase := 0;
 
 				sink_sop <= '0';
@@ -147,10 +147,10 @@ begin
 
 
 	output:
-	process(clock, reset_n) is
+	process(clock, reset) is
 		variable out_phase : integer;
 		begin
-			if reset_n = '0'  then
+			if reset = '1'  then
 
 				out_phase := 0;
 				out_bin_idx <= to_unsigned(0, 5);

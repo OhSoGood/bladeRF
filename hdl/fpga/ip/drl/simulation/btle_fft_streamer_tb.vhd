@@ -23,7 +23,7 @@ architecture testbench of btle_fft_streamer_tb is
 	signal iq_done: std_logic := '0';
 
 	signal clock: std_logic := '0';
-	signal reset_n: std_logic := '0';
+	signal reset: std_logic := '0';
 	
 	signal in_imag : signed (15 downto 0) := (others => '0');
 	signal in_real : signed (15 downto 0) := (others => '0');	
@@ -41,7 +41,7 @@ begin
 	generic map(filepath => "simulation\\" & "basic_fft_in.txt")
 	port map(
 		clock => clock,
-		reset => not reset_n,
+		reset => reset,
 		enable => iq_enable,
 		iq_real => in_real,
 		iq_imag => in_imag,
@@ -53,7 +53,7 @@ begin
 	generic map (order => 16)
 	port map(
 		clock => clock,
-		reset_n => reset_n,
+		reset => reset,
 		enable => '1',
 		in_real => in_real,
 		in_imag => in_imag,
@@ -67,7 +67,7 @@ begin
 
 
     clock <= not clock after 15.625 ns;
-    reset_n <= '0', '1' after 100 ns;
+    reset <= '1', '0' after 100 ns;
     
     stimulus: 
     process
@@ -75,7 +75,7 @@ begin
     	begin
 			test_runner_setup(runner, runner_cfg);
 
-		   	wait until reset_n = '1';
+		   	wait until reset = '0';
 			wait until rising_edge(clock);
 
 			iq_enable <= '1';
@@ -94,14 +94,14 @@ begin
 
 
 	checker:
-	process(clock, reset_n)
+	process(clock, reset)
 	    file rx_complex: text open read_mode is "simulation\\" & "basic_fft_out.txt";
 	    variable current_line : line;
     	variable i: integer;
     	variable q: integer;
     	variable v : integer;
 		begin
-			if reset_n = '0' then
+			if reset = '1' then
 
 				i := 0;
 				q := 0;
