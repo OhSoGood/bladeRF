@@ -1,0 +1,20 @@
+# system info fft on 2016.10.14.19:14:42
+system_info:
+name,value
+DEVICE,EP4CE115F23C8
+DEVICE_FAMILY,Cyclone IV E
+GENERATION_ID,1476468865
+#
+#
+# Files generated for fft on 2016.10.14.19:14:42
+files:
+filepath,kind,attributes,module,is_top
+simulation/fft.vhd,VHDL,,fft,true
+simulation/submodules/fft_fft_ii_0_opt_twi1.hex,HEX,,fft_fft_ii_0,false
+simulation/submodules/fft_fft_ii_0_opt_twr1.hex,HEX,,fft_fft_ii_0,false
+simulation/submodules/fft_fft_ii_0.vo,VERILOG,,fft_fft_ii_0,false
+#
+# Map from instance-path to kind of module
+instances:
+instancePath,module
+fft.fft_ii_0,fft_fft_ii_0

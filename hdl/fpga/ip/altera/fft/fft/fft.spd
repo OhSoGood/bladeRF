@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<simPackage>
+ <file
+   path="simulation/submodules/fft_fft_ii_0_opt_twi1.hex"
+   type="HEX"
+   library="fft_ii_0" />
+ <file
+   path="simulation/submodules/fft_fft_ii_0_opt_twr1.hex"
+   type="HEX"
+   library="fft_ii_0" />
+ <file
+   path="simulation/submodules/fft_fft_ii_0.vo"
+   type="VERILOG"
+   library="fft_ii_0" />
+ <file path="simulation/fft.vhd" type="VHDL" />
+ <topLevel name="fft" />
+ <deviceFamily name="cycloneive" />
+</simPackage>
