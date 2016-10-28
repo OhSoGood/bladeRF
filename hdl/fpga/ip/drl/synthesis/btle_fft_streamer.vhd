@@ -31,7 +31,7 @@ architecture rtl of btle_fft_streamer is
 	signal fftpts_in : std_logic_vector (4 downto 0) := (others => '0'); 
 	signal fftpts_out : std_logic_vector (4 downto 0):= (others => '0'); 
 
-	signal inverse: std_logic := '0';
+	signal inverse: std_logic_vector(0 downto 0) := (others => '0');
 	signal sink_eop: std_logic := '0';
 
 	signal sink_error: std_logic_vector (1 downto 0) := (others => '0');
@@ -48,29 +48,55 @@ architecture rtl of btle_fft_streamer is
 	signal source_ready: std_logic := '0';
 	signal source_real:  signed (15 downto 0) := (others => '0');
 
+
+	component fft is
+		port (
+			clk          : in  std_logic                     := 'X';             -- clk
+			reset_n      : in  std_logic                     := 'X';             -- reset_n
+			sink_valid   : in  std_logic                     := 'X';             -- sink_valid
+			sink_ready   : out std_logic;                                        -- sink_ready
+			sink_error   : in  std_logic_vector(1 downto 0)  := (others => 'X'); -- sink_error
+			sink_sop     : in  std_logic                     := 'X';             -- sink_sop
+			sink_eop     : in  std_logic                     := 'X';             -- sink_eop
+			sink_real    : in  signed(15 downto 0) := (others => 'X'); -- sink_real
+			sink_imag    : in  signed(15 downto 0) := (others => 'X'); -- sink_imag
+			fftpts_in    : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- fftpts_in
+			inverse      : in  std_logic_vector(0 downto 0)  := (others => 'X'); -- inverse
+			source_valid : out std_logic;                                        -- source_valid
+			source_ready : in  std_logic                     := 'X';             -- source_ready
+			source_error : out std_logic_vector(1 downto 0);                     -- source_error
+			source_sop   : out std_logic;                                        -- source_sop
+			source_eop   : out std_logic;                                        -- source_eop
+			source_real  : out signed(15 downto 0);                    -- source_real
+			source_imag  : out signed(15 downto 0);                    -- source_imag
+			fftpts_out   : out std_logic_vector(4 downto 0)                      -- fftpts_out
+		);
+	end component fft;
+
 begin
 
-	fft: entity work.fft_ii_0_example_design_core
-	port map(
-		clk => clock,					-- in
-		fftpts_in => fftpts_in,			
-		fftpts_out => fftpts_out,
-		inverse => inverse,
-		reset_n => reset_n,
-		sink_eop => sink_eop,			-- into FFT
-		sink_error => sink_error,				-- into FFT from upstream avalon block
-		sink_imag => sink_imag,			-- into FFT
-		sink_ready => sink_ready,		-- out of FFT
-		sink_real => sink_real,			-- into FFT
-		sink_sop => sink_sop,			-- into FFT
-		sink_valid => sink_valid,		-- into FFT
-		source_eop => source_eop,		-- out of FFT
-		source_error => source_error,	-- out of FFT
-		source_imag => source_imag,		-- out of FFT
-		source_sop => source_sop,		-- out of FFT
-		source_valid => source_valid,	-- out of FFT
-		source_ready => source_ready,	-- into FFT
-		source_real => source_real);	-- out of FFT
+	u_fft : component fft
+		port map (
+			clk          => clock,          --    clk.clk
+			reset_n      => reset_n,      --    rst.reset_n
+			sink_valid   => sink_valid,   --   sink.sink_valid
+			sink_ready   => sink_ready,   --       .sink_ready
+			sink_error   => sink_error,   --       .sink_error
+			sink_sop     => sink_sop,     --       .sink_sop
+			sink_eop     => sink_eop,     --       .sink_eop
+			sink_real    => sink_real,    --       .sink_real
+			sink_imag    => sink_imag,    --       .sink_imag
+			fftpts_in    => fftpts_in,    --       .fftpts_in
+			inverse      => inverse,      --       .inverse
+			source_valid => source_valid, -- source.source_valid
+			source_ready => source_ready, --       .source_ready
+			source_error => source_error, --       .source_error
+			source_sop   => source_sop,   --       .source_sop
+			source_eop   => source_eop,   --       .source_eop
+			source_real  => source_real,  --       .source_real
+			source_imag  => source_imag,  --       .source_imag
+			fftpts_out   => fftpts_out    --       .fftpts_out
+		);
 
 
 	input:
@@ -83,7 +109,7 @@ begin
 				sink_sop <= '0';
 				sink_eop <= '0';
 				sink_valid <= '0';
-				inverse <= '0';
+				inverse <= (others => '0');
 				sink_error <= "00";
 				fftpts_in <= "00000";
 

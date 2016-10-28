@@ -11,7 +11,8 @@ root = dirname(__file__)
 
 src_path = join(root, "synthesis")
 tb_path = join(root, "simulation")
-fft_path = join(root, "ip\\altera\\fft\\src\\");
+fft_sim_path = join(root, "..\\altera\\fft\\fft\\simulation\\submodules\\");
+fft_path = join(root, "..\\altera\\fft\\fft\\synthesis\\");
 
 altera_sim_path = "C:\\altera\\15.0\\quartus\\eda\\sim_lib\\"
 
@@ -35,7 +36,8 @@ btle = ui.add_library("btle")
 
 btle.add_source_files(join(src_path, "*.vhd"))
 btle.add_source_files(join(tb_path, "*.vhd"))
-btle.add_source_files(join(fft_path, "fft_ii_0_example_design_core.sv"))
+btle.add_source_files(join(fft_path, "fft.vhd"))
+btle.add_source_files(join(fft_sim_path, "*.sv"))
 
 ui.main()
 
