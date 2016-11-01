@@ -7,6 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+
 entity btle_fft_streamer is
 	generic(order : integer);
 	port(
@@ -179,12 +180,16 @@ begin
 					out_valid <= '1';
 
 					if source_eop = '1' then
-						assert out_phase = 15 report "source_eop asserted when out_phase= " & to_string(out_phase) severity failure;
+						assert out_phase = 15 report "source_eop asserted when out_phase= " 
+						--& to_string(out_phase) 
+						severity failure;
 					end if;
 
 				end if;
 
-				assert source_error = "00" report "Source error asserted " & to_string(source_error) severity failure;
+				assert source_error = "00" report "Source error asserted " 
+				--& to_string(source_error) 
+				severity failure;
 			end if;
 		end
 	process;

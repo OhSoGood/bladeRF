@@ -1,3 +1,8 @@
+--
+-- (c) Distributed Radio Limited 2016
+--     steve@distributedradio.com
+--
+
 library ieee;
 
 use ieee.std_logic_1164.all;
