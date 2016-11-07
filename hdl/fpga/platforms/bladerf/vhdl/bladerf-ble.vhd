@@ -691,18 +691,35 @@ begin
         overflow_duration   =>  x"ffff"
       ) ;
 
-	U_rx_btle : entity work.btle_channel_receiver
+
+--    U_rx_fft : entity work.btle_fft_streamer
+--	generic map(order => 16)
+--    port map(
+--		clock 			=> rx_clock,
+--		reset 			=> rx_reset,
+--		enable			=> rx_enable,
+--		in_real  		=> rx_sample_corrected_i,
+--		in_imag	   	=> rx_sample_corrected_q,
+--		in_valid       => rx_sample_corrected_valid,
+--		out_bin_idx   	=> open,
+--		out_real		   => rx_sample_btle_i,
+--		out_imag  		=> rx_sample_btle_q,
+--		out_valid      => rx_sample_btle_valid
+--    );
+    
+
+	U_rx_btle : entity work.btle_wideband_receiver
 	generic map(samples_per_bit => 2)
 	port map (
-        clock               =>  rx_clock,
-        reset               =>  rx_reset,
-        in_real 			=>  rx_sample_corrected_i,
-        in_imag 			=>  rx_sample_corrected_q,
-        in_valid 			=>  rx_sample_corrected_valid,
-        out_real 			=>  rx_sample_btle_i,
-        out_imag 			=>  rx_sample_btle_q,
-        out_valid 			=>  rx_sample_btle_valid,
-        out_detected        =>  btle_detected
+		clock               =>  rx_clock,
+		reset               =>  rx_reset,
+		enable 				=>  rx_enable,
+        in_wb_real 			=>  rx_sample_corrected_i,
+        in_wb_imag 			=>  rx_sample_corrected_q,
+       	in_wb_valid 		=>  rx_sample_corrected_valid,
+       	out_real 			=>  rx_sample_btle_i,
+       	out_imag 			=>  rx_sample_btle_q,
+       	out_valid 			=>  rx_sample_btle_valid
 	);
 
 

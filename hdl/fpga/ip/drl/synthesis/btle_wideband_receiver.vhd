@@ -101,9 +101,11 @@ begin
 
 				if fft_out_valid = '1' then
 
-					out_real <= fft_out_real;
-					out_imag <= fft_out_imag;
-					out_valid <= '1';
+					if fft_out_idx = to_unsigned(10, 5) then
+						out_real <= fft_out_real;
+						out_imag <= fft_out_imag;
+						out_valid <= '1';
+					end if;
 
 				end if;
 			end if;

@@ -9,6 +9,7 @@ set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/a
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/tx_fifo/tx_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/tx_meta_fifo/tx_meta_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/rx_meta_fifo/rx_meta_fifo.qip]]
+set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/fft/fft/synthesis/fft.qip]]
 
 # Explicitly include Nios mem_init
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/nios_system/software/bladeRF_nios/mem_init/meminit.qip]]
@@ -25,13 +26,14 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/nuand/synthesis/lms6002d/vhdl/lms6002d.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/nuand/trigger/trigger.vhd]]
 
-
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_wideband_receiver.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_receiver.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_common.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_complex.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_delay_line.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_matched.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_aa_detector.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
 
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/fx3_gpif.vhd]]
