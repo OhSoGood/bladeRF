@@ -22,7 +22,8 @@ entity btle_wideband_receiver is
 
 		out_real:		out signed(15 downto 0);				
 		out_imag: 		out signed(15 downto 0);
-		out_valid:		out std_logic
+		out_valid:		out std_logic;
+		out_detected:   out std_logic
 	);
 
 end btle_wideband_receiver;
@@ -49,6 +50,7 @@ architecture rtl of btle_wideband_receiver is
 	signal ch_out_real: 	bus_array;
 	signal ch_out_imag:		bus_array;
 	signal ch_out_valid:    std_logic_vector(15 downto 0);
+	signal ch_out_detected: std_logic_vector(15 downto 0);
 
 begin
 
@@ -67,7 +69,7 @@ begin
 				out_real => ch_out_real(i),
 				out_imag => ch_out_imag(i),
 				out_valid => ch_out_valid(i),
-				out_detected  => open 
+				out_detected  => ch_out_detected(i) 
 			);
 
 	end generate;
@@ -135,12 +137,6 @@ begin
 					ch_in_imag <= fft_out_imag;
 					ch_in_valid(to_integer(fft_out_idx)) <= '1';
 					
-					--if fft_out_idx = to_unsigned(10, 5) then
-					--	out_real <= fft_out_real;
-					--	out_imag <= fft_out_imag;
-					--	out_valid <= '1';
-					--end if;
-
 				end if;
 			end if;
 		end
@@ -160,6 +156,16 @@ begin
 
 				out_valid <= '0';
 
+				--for ch in 0 to 15 loop
+				--	if ch_out_valid(ch) and '1' then
+				--	
+				--			out_real <= ch_out_real(ch);
+				--		out_imag <= ch_out_imag(ch);
+				--		out_valid <= '1';	
+
+--					end if;
+--				end loop;
+
 				if ch_out_valid = "0000010000000000" then
 
 					out_real <= ch_out_real(10);
@@ -167,6 +173,31 @@ begin
 					out_valid <= '1';
 
 				end if;
+				
+			end if;
+		end
+	process;
+
+
+	ch_detector:
+	process(clock, reset) is
+		variable tmp : std_logic;
+		begin
+			
+			if reset = '1' then
+
+				out_detected <= '0';
+
+			elsif rising_edge(clock) then
+
+				tmp := '0';
+
+				for ch in 0 to 15 loop
+					tmp:= tmp or ch_out_detected(ch);
+				end loop;
+
+				out_detected <= tmp;
+
 			end if;
 		end
 	process;

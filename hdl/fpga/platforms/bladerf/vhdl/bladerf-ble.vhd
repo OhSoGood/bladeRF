@@ -719,7 +719,8 @@ begin
        	in_wb_valid 		=>  rx_sample_corrected_valid,
        	out_real 			=>  rx_sample_btle_i,
        	out_imag 			=>  rx_sample_btle_q,
-       	out_valid 			=>  rx_sample_btle_valid
+       	out_valid 			=>  rx_sample_btle_valid,
+       	out_detected        =>  btle_detected
 	);
 
 
