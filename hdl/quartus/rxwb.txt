@@ -1,0 +1,13 @@
+set frequency rx 2414000000
+set samplerate rx 32000000
+set bandwidth rx 28000000
+
+set lnagain 3
+set rxvga1 27
+set rxvga2 10
+
+rx config file=samples.csv format=csv n=1024
+rx start
+
+
+
