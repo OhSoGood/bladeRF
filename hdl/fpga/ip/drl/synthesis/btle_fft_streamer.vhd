@@ -104,22 +104,24 @@ begin
 	process(clock, reset) is
 		variable in_phase : integer;
 		begin
+
+			inverse <= (others => '0');
+			sink_error <= "00";
+			fftpts_in <= "10000";
+		
 			if reset = '1' then
+			
 				in_phase := 0;
 
 				sink_sop <= '0';
 				sink_eop <= '0';
 				sink_valid <= '0';
-				inverse <= (others => '0');
-				sink_error <= "00";
-				fftpts_in <= "00000";
 
 				sink_real <= (others => '0');
 				sink_imag <= (others => '0');		
 
 			elsif rising_edge(clock) then
 
-				fftpts_in <= "10000";
 				sink_valid <= '0';
 				sink_sop <= '0';
 				sink_eop <= '0';

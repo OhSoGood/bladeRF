@@ -40,7 +40,37 @@ architecture rtl of btle_wideband_receiver is
 	signal fft_out_imag: 	signed (15 downto 0);
 	signal fft_out_valid: 	std_logic;
 
+	type bus_array is array(15 downto 0) of signed (15 downto 0);
+
+	signal ch_in_real: 		signed (15 downto 0);
+	signal ch_in_imag: 		signed (15 downto 0);
+	signal ch_in_valid:		std_logic_vector(15 downto 0);
+	
+	signal ch_out_real: 	bus_array;
+	signal ch_out_imag:		bus_array;
+	signal ch_out_valid:    std_logic_vector(15 downto 0);
+
 begin
+
+
+	rx_bank : for i in 0 to 15 generate
+		ch_rx: entity work.btle_channel_receiver
+			generic map(samples_per_bit => samples_per_bit)
+			port map(
+				clock => clock,
+				reset => reset,
+
+				in_real => ch_in_real,
+				in_imag => ch_in_imag,
+				in_valid => ch_in_valid(i),
+
+				out_real => ch_out_real(i),
+				out_imag => ch_out_imag(i),
+				out_valid => ch_out_valid(i),
+				out_detected  => open 
+			);
+
+	end generate;
 
     fft : entity work.btle_fft_streamer
 	generic map(order => 16)
@@ -91,6 +121,37 @@ begin
 		begin
 			if reset = '1' then
 
+				ch_in_real <= (others => '0');
+				ch_in_imag <= (others => '0');
+				ch_in_valid <= (others => '0');
+
+			elsif rising_edge(clock) then
+
+				ch_in_valid <= (others => '0');
+
+				if fft_out_valid = '1' then
+
+					ch_in_real <= fft_out_real;
+					ch_in_imag <= fft_out_imag;
+					ch_in_valid(to_integer(fft_out_idx)) <= '1';
+					
+					--if fft_out_idx = to_unsigned(10, 5) then
+					--	out_real <= fft_out_real;
+					--	out_imag <= fft_out_imag;
+					--	out_valid <= '1';
+					--end if;
+
+				end if;
+			end if;
+		end
+	process;
+
+
+	ch_output:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+
 				out_real <= (others => '0');
 				out_imag <= (others => '0');
 				out_valid <= '0';
@@ -99,18 +160,15 @@ begin
 
 				out_valid <= '0';
 
-				if fft_out_valid = '1' then
+				if ch_out_valid = "0000010000000000" then
 
-					if fft_out_idx = to_unsigned(10, 5) then
-						out_real <= fft_out_real;
-						out_imag <= fft_out_imag;
-						out_valid <= '1';
-					end if;
+					out_real <= ch_out_real(10);
+					out_imag <= ch_out_imag(10);
+					out_valid <= '1';
 
 				end if;
 			end if;
 		end
 	process;
-
 
 end rtl;
