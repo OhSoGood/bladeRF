@@ -24,6 +24,9 @@ entity btle_channel_receiver is
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
 
+		in_cts:         in std_logic;
+		out_rts:        out std_logic;
+		
 		out_detected:   buffer std_logic;
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
@@ -33,6 +36,9 @@ end btle_channel_receiver;
 
 
 architecture rtl of btle_channel_receiver is
+
+	type ch_state_type is ( STATE_WAIT_DETECT, STATE_WAIT_CTS, STATE_COUNTDOWN );
+	signal state : ch_state_type;
 
 	signal newest_sample_real : std_logic_vector(15 downto 0) := (others => '0');
 	signal newest_sample_imag : std_logic_vector(15 downto 0) := (others => '0');
@@ -100,17 +106,12 @@ begin
 
 	receiver: 
 	process(clock, reset) is
-	
 		begin
 			if reset = '1' then
 
 				newest_sample_real <= (others => '0');
 				newest_sample_imag <= (others => '0');
 				
-				out_real <= (others => '0');
-				out_imag <= (others => '0');
-
-				out_valid <= '0';
 				out_detected <= '0';
 
 				demod_real <= (others => '0');
@@ -119,7 +120,6 @@ begin
 				
 			elsif rising_edge(clock) then
 
-				out_valid <= '0';
 				demod_valid <= '0';
 				
 				if in_valid = '1' then		
@@ -129,12 +129,8 @@ begin
 					
 					demod_real <= signed(demod_sample_real);
 					demod_imag <= signed(demod_sample_imag);
-
-					out_real <= signed(oldest_sample_real);
-					out_imag <= signed(oldest_sample_imag);
 				
 					demod_valid <= '1';
-  					out_valid <= '1';
 
 				end if;
 
@@ -143,6 +139,102 @@ begin
 			end if;
 		end 
 	process;
+
+
+--	state_fsm:
+--	process(clock, reset) is
+--		begin
+--			if reset = '1' then
+--				state <= STATE_WAIT_DETECT;
+--			elsif rising_edge(clock) then
+--				case state is
+--					when STATE_WAIT_DETECT =>
+--
+--			
+--				state <= state_next;
+--			end if;
+--		end
+--	process;
+
+	state_fsm:
+	process(clock, reset) is
+
+		variable countdown: integer := 0;
+		begin
+
+			if reset = '1' then
+			
+				out_rts <= '0';
+				out_real <= (others => '0');
+				out_imag <= (others => '0');
+				out_valid <= '0';
+				state <= STATE_WAIT_DETECT;
+				
+			elsif rising_edge(clock) then
+					
+				case state is
+					when STATE_WAIT_DETECT =>
+
+						out_rts <= '0';
+						out_real <= (others => '0');
+						out_imag <= (others => '0');
+						out_valid <= '0';
+						
+						if detection = '1' then
+
+							out_rts <= '1';
+							state <= STATE_WAIT_CTS;
+	
+						end if;
+
+					when STATE_WAIT_CTS =>
+
+						out_rts <= '1';
+						out_real <= (others => '0');
+						out_imag <= (others => '0');
+						out_valid <= '0';	
+
+						if in_cts = '1' then
+						
+							out_real <= x"AAAA";
+							out_imag <= x"5555";
+							out_valid <= '1';
+							state <= STATE_COUNTDOWN;
+
+							countdown := BTLE_MEMORY_LEN;
+ 
+						end if;
+
+					when STATE_COUNTDOWN =>
+
+						out_rts <= '1';
+						out_real <= signed(oldest_sample_real);
+						out_imag <= signed(oldest_sample_imag);
+						out_valid <= '1';
+
+						countdown := countdown - 1;
+
+						if countdown = 0 then
+						
+							state <= STATE_WAIT_DETECT;
+
+						end if;
+
+					when others =>
+					
+						out_rts <= '0';
+						out_real <= (others => '0');
+						out_imag <= (others => '0');
+						out_valid <= '0';
+						state <= STATE_WAIT_DETECT;
+				
+				end case;
+
+			end if;
+		end
+	process;
+
+	
 end rtl;
 
 

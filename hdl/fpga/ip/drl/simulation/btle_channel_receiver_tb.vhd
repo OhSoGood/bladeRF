@@ -26,6 +26,7 @@ architecture testbench of btle_channel_receiver_tb is
     signal in_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal in_valid: std_logic := '0';
 
+	signal out_rts: std_logic := '0';
 	signal out_detected: std_logic := '0';
     signal out_real: signed(15 downto 0) := to_signed(0, 16);
     signal out_imag: signed(15 downto 0) := to_signed(0, 16);
@@ -48,6 +49,8 @@ begin
 		in_imag => in_imag,
 		in_valid => in_valid,
 
+		in_cts => '1',
+		out_rts => out_rts,
 		out_real => out_real,
 		out_imag => out_imag,
 		out_valid => out_valid,
