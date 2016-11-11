@@ -41,17 +41,11 @@ architecture rtl of btle_channel_receiver is
 	signal state : ch_state_type;
 
 	signal memory_clock_en : std_logic;
-
-	signal newest_sample_real : std_logic_vector(15 downto 0) := (others => '0');
-	signal newest_sample_imag : std_logic_vector(15 downto 0) := (others => '0');
-
 	signal memory_sample_valid : std_logic;
 
-	signal demod_sample_real  : std_logic_vector(15 downto 0);
-	signal demod_sample_imag  : std_logic_vector(15 downto 0);
-	
-	signal oldest_sample_real : std_logic_vector(15 downto 0);
-	signal oldest_sample_imag : std_logic_vector(15 downto 0);
+	signal newest_sample : std_logic_vector(31 downto 0) := (others => '0');
+	signal demod_sample  : std_logic_vector(31 downto 0);	
+	signal oldest_sample : std_logic_vector(31 downto 0);
 	
 	signal demod_real: signed(15 downto 0) := (others => '0');
 	signal demod_imag: signed(15 downto 0) := (others => '0');
@@ -63,33 +57,19 @@ architecture rtl of btle_channel_receiver is
 
 begin
 
-	delay_real:
+	delay_iq:
 	entity work.btle_delay_line
-	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )
+	generic map( W => 32, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )
 	port map (
 		clock => clock,
 		clock_en => memory_clock_en,
 		sync_reset => reset,
-		in_data => newest_sample_real,
+		in_data => newest_sample,
 		out_valid => memory_sample_valid,
-		out_data => oldest_sample_real,
-		out_data_tap => demod_sample_real
+		out_data => oldest_sample,
+		out_data_tap => demod_sample
 	);
 	
-	
-	delay_imag:
-	entity work.btle_delay_line
-	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )		
-	port map (
-		clock => clock,
-		clock_en => memory_clock_en,
-		sync_reset => reset,
-		in_data => newest_sample_imag,
-		out_valid => open,
-		out_data => oldest_sample_imag,
-		out_data_tap => demod_sample_imag
-	);
-
 	demod: 
 	entity work.btle_demod_matched 
 	port map (
@@ -117,8 +97,7 @@ begin
 		begin
 			if reset = '1' then
 
-				newest_sample_real <= (others => '0');
-				newest_sample_imag <= (others => '0');
+				newest_sample <= (others => '0');
 				
 				out_detected <= '0';
 
@@ -130,9 +109,7 @@ begin
 
 				if in_valid = '1' then		
 					
- 					newest_sample_real <=  std_logic_vector(in_real);	
-  					newest_sample_imag <=  std_logic_vector(in_imag);	
-					
+ 					newest_sample <=  std_logic_vector(in_real & in_imag);				
 					memory_clock_en <= '1';
 
 				end if;
@@ -159,8 +136,8 @@ begin
 				
 				if memory_sample_valid = '1' then
 				
-					demod_real <= signed(demod_sample_real);
-					demod_imag <= signed(demod_sample_imag);
+					demod_real <= signed(demod_sample (31 downto 16));
+					demod_imag <= signed(demod_sample (15 downto  0));
 					demod_valid <= '1';	
 
 				end if;
@@ -242,8 +219,8 @@ begin
 
 						if memory_sample_valid = '1' then
 
-							out_real <= signed(oldest_sample_real);
-							out_imag <= signed(oldest_sample_imag);
+							out_real <= signed(oldest_sample (31 downto 16));
+							out_imag <= signed(oldest_sample (15 downto  0));
 							out_valid <= '1';
 
 							countdown := countdown - 1;
