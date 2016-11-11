@@ -15,8 +15,10 @@ entity btle_delay_line is
   	);
 	port(
   		clock: 			in  std_logic;
+  		clock_en:		in  std_logic;
   		sync_reset: 	in  std_logic;
   		in_data: 		in  std_logic_vector(W - 1 downto 0);
+  		out_valid:		out std_logic;
   		out_data: 		out std_logic_vector(W - 1 downto 0);	-- Oldest (head of FIFO)
   		out_data_tap:	out std_logic_vector(W - 1 downto 0)	-- T positions before oldest (tap for demodulation)
   	);
@@ -45,13 +47,17 @@ begin
 		
   			elsif rising_edge(clock) then
     			
-      			m_ram(r_addr_wr) <= in_data;
+				if clock_en = '1' then
+				
+      				m_ram(r_addr_wr) <= in_data;
 
-      			if(r_addr_wr < L - 2) then
-        			r_addr_wr <= r_addr_wr + 1;
-      			else
-        			r_addr_wr <= 0;
-        			r_enable_read <= '1';
+      				if(r_addr_wr < L - 2) then
+        				r_addr_wr <= r_addr_wr + 1;
+      				else
+        				r_addr_wr <= 0;
+        				r_enable_read <= '1';
+      				end if;
+      				
       			end if;
   			end if;
 		end 
@@ -64,31 +70,38 @@ begin
 
 		    	r_addr_rd <= 0;
 		    	r_addr_rd_tap <= T;
-		    	
+
+		    	out_valid <= '0';
 		    	out_data <= (others => '0');
 		    	out_data_tap <= (others => '0');
 		      				
   			elsif rising_edge(clock) then
 
-      			if(r_enable_read = '1') then
+		    	out_valid <= '0';
 
-        			out_data <= m_ram(r_addr_rd);
-					out_data_tap <= m_ram(r_addr_rd_tap);
+				if clock_en = '1' then
+				
+	      			if(r_enable_read = '1') then
 
-        			if(r_addr_rd < L - 2) then
-          				r_addr_rd <= r_addr_rd + 1;
-        			else
-          				r_addr_rd <= 0;
-        			end if;
+	        			out_data <= m_ram(r_addr_rd);
+						out_data_tap <= m_ram(r_addr_rd_tap);
 
-        			if(r_addr_rd_tap < L - 2) then
-          				r_addr_rd_tap <= r_addr_rd_tap + 1;
-        			else
-          				r_addr_rd_tap <= 0;
-        			end if;
-        			
-    			end if;
-    			
+	        			if(r_addr_rd < L - 2) then
+	          				r_addr_rd <= r_addr_rd + 1;
+	        			else
+	          				r_addr_rd <= 0;
+	        			end if;
+
+	        			if(r_addr_rd_tap < L - 2) then
+	          				r_addr_rd_tap <= r_addr_rd_tap + 1;
+	        			else
+	          				r_addr_rd_tap <= 0;
+	        			end if;
+
+	        			out_valid <= '1';
+	        			
+	    			end if;
+	    		end if;
   			end if;
 		end 
 	process p_read;

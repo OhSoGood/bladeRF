@@ -49,6 +49,45 @@ architecture rtl of btle_fft_streamer is
 	signal source_ready: std_logic := '0';
 	signal source_real:  signed (15 downto 0) := (others => '0');
 
+	attribute preserve : boolean;
+	attribute preserve of fftpts_in : signal is true;
+	attribute preserve of fftpts_out : signal is true;
+	attribute preserve of inverse : signal is true;
+	attribute preserve of sink_eop : signal is true;
+	attribute preserve of sink_error : signal is true;
+	attribute preserve of sink_imag : signal is true;
+	attribute preserve of sink_ready : signal is true;
+	attribute preserve of sink_real : signal is true;
+	attribute preserve of sink_sop : signal is true;
+	attribute preserve of sink_valid : signal is true;
+	attribute preserve of source_eop : signal is true;
+	attribute preserve of source_error : signal is true;
+	attribute preserve of source_imag : signal is true;
+	attribute preserve of source_sop : signal is true;
+	attribute preserve of source_valid : signal is true;
+	attribute preserve of source_ready : signal is true;
+	attribute preserve of source_real : signal is true;
+
+	attribute syn_keep : boolean;
+	attribute syn_keep of fftpts_in : signal is true;
+	attribute syn_keep of fftpts_out : signal is true;
+	attribute syn_keep of inverse : signal is true;
+	attribute syn_keep of sink_eop : signal is true;
+	attribute syn_keep of sink_error : signal is true;
+	attribute syn_keep of sink_imag : signal is true;
+	attribute syn_keep of sink_ready : signal is true;
+	attribute syn_keep of sink_real : signal is true;
+	attribute syn_keep of sink_sop : signal is true;
+	attribute syn_keep of sink_valid : signal is true;
+	attribute syn_keep of source_eop : signal is true;
+	attribute syn_keep of source_error : signal is true;
+	attribute syn_keep of source_imag : signal is true;
+	attribute syn_keep of source_sop : signal is true;
+	attribute syn_keep of source_valid : signal is true;
+	attribute syn_keep of source_ready : signal is true;
+	attribute syn_keep of source_real : signal is true;			
+
+	
 
 	component fft is
 		port (

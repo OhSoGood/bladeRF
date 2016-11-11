@@ -40,8 +40,12 @@ architecture rtl of btle_channel_receiver is
 	type ch_state_type is ( STATE_WAIT_DETECT, STATE_WAIT_CTS, STATE_COUNTDOWN );
 	signal state : ch_state_type;
 
+	signal memory_clock_en : std_logic;
+
 	signal newest_sample_real : std_logic_vector(15 downto 0) := (others => '0');
 	signal newest_sample_imag : std_logic_vector(15 downto 0) := (others => '0');
+
+	signal memory_sample_valid : std_logic;
 
 	signal demod_sample_real  : std_logic_vector(15 downto 0);
 	signal demod_sample_imag  : std_logic_vector(15 downto 0);
@@ -64,8 +68,10 @@ begin
 	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )
 	port map (
 		clock => clock,
+		clock_en => memory_clock_en,
 		sync_reset => reset,
 		in_data => newest_sample_real,
+		out_valid => memory_sample_valid,
 		out_data => oldest_sample_real,
 		out_data_tap => demod_sample_real
 	);
@@ -76,8 +82,10 @@ begin
 	generic map( W => 16, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )		
 	port map (
 		clock => clock,
+		clock_en => memory_clock_en,
 		sync_reset => reset,
 		in_data => newest_sample_imag,
+		out_valid => open,
 		out_data => oldest_sample_imag,
 		out_data_tap => demod_sample_imag
 	);
@@ -104,7 +112,7 @@ begin
 		out_detect => detection
 	);
 
-	receiver: 
+	memory_in: 
 	process(clock, reset) is
 		begin
 			if reset = '1' then
@@ -114,23 +122,18 @@ begin
 				
 				out_detected <= '0';
 
-				demod_real <= (others => '0');
-				demod_imag <= (others => '0');
-				demod_valid <= '0';
+				memory_clock_en <= '0';
 				
 			elsif rising_edge(clock) then
 
-				demod_valid <= '0';
-				
+				memory_clock_en <= '0';
+
 				if in_valid = '1' then		
 					
  					newest_sample_real <=  std_logic_vector(in_real);	
   					newest_sample_imag <=  std_logic_vector(in_imag);	
 					
-					demod_real <= signed(demod_sample_real);
-					demod_imag <= signed(demod_sample_imag);
-				
-					demod_valid <= '1';
+					memory_clock_en <= '1';
 
 				end if;
 
@@ -139,6 +142,33 @@ begin
 			end if;
 		end 
 	process;
+
+
+	memory_to_demod:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+
+				demod_real <= (others => '0');
+				demod_imag <= (others => '0');
+				demod_valid <= '0';
+				
+			elsif rising_edge(clock) then
+
+				demod_valid <= '0';
+				
+				if memory_sample_valid = '1' then
+				
+					demod_real <= signed(demod_sample_real);
+					demod_imag <= signed(demod_sample_imag);
+					demod_valid <= '1';	
+
+				end if;
+
+			end if;
+		end
+	process;
+
 
 
 --	state_fsm:
@@ -208,11 +238,17 @@ begin
 					when STATE_COUNTDOWN =>
 
 						out_rts <= '1';
-						out_real <= signed(oldest_sample_real);
-						out_imag <= signed(oldest_sample_imag);
-						out_valid <= '1';
+						out_valid <= '0';
 
-						countdown := countdown - 1;
+						if memory_sample_valid = '1' then
+
+							out_real <= signed(oldest_sample_real);
+							out_imag <= signed(oldest_sample_imag);
+							out_valid <= '1';
+
+							countdown := countdown - 1;
+							
+						end if;
 
 						if countdown = 0 then
 						

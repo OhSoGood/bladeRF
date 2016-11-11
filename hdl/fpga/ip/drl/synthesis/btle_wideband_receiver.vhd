@@ -55,6 +55,42 @@ architecture rtl of btle_wideband_receiver is
 	signal ch_out_valid:    std_logic_vector(num_channels - 1 downto 0);
 	signal ch_out_detected: std_logic_vector(num_channels - 1 downto 0);
 
+	attribute preserve : boolean;
+	attribute preserve of fft_in_real : signal is true;
+	attribute preserve of fft_in_imag : signal is true;
+	attribute preserve of fft_in_valid : signal is true;
+	attribute preserve of fft_out_idx : signal is true;
+	attribute preserve of fft_out_real : signal is true;
+	attribute preserve of fft_out_imag : signal is true;
+	attribute preserve of fft_out_valid : signal is true;
+	attribute preserve of ch_in_real : signal is true;
+	attribute preserve of ch_in_imag : signal is true;
+	attribute preserve of ch_in_valid : signal is true;
+	attribute preserve of ch_in_cts : signal is true;
+	attribute preserve of ch_out_rts : signal is true;
+	attribute preserve of ch_out_real : signal is true;
+	attribute preserve of ch_out_imag : signal is true;
+	attribute preserve of ch_out_valid : signal is true;
+	attribute preserve of ch_out_detected : signal is true;
+
+	attribute syn_keep : boolean;
+	attribute syn_keep of fft_in_real : signal is true;
+	attribute syn_keep of fft_in_imag : signal is true;
+	attribute syn_keep of fft_in_valid : signal is true;
+	attribute syn_keep of fft_out_idx : signal is true;
+	attribute syn_keep of fft_out_real : signal is true;
+	attribute syn_keep of fft_out_imag : signal is true;
+	attribute syn_keep of fft_out_valid : signal is true;
+	attribute syn_keep of ch_in_real : signal is true;
+	attribute syn_keep of ch_in_imag : signal is true;
+	attribute syn_keep of ch_in_valid : signal is true;
+	attribute syn_keep of ch_in_cts : signal is true;
+	attribute syn_keep of ch_out_rts : signal is true;
+	attribute syn_keep of ch_out_real : signal is true;
+	attribute syn_keep of ch_out_imag : signal is true;
+	attribute syn_keep of ch_out_valid : signal is true;
+	attribute syn_keep of ch_out_detected : signal is true;
+
 begin
 
 	rx_bank : for i in 0 to num_channels - 1 generate
