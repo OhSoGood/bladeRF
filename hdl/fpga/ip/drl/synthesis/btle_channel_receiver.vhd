@@ -166,7 +166,7 @@ begin
 	state_fsm:
 	process(clock, reset) is
 
-		variable countdown: integer := 0;
+		variable sample_pairs_count : integer := 0;
 		begin
 
 			if reset = '1' then
@@ -208,8 +208,7 @@ begin
 							out_valid <= '1';
 							state <= STATE_COUNTDOWN;
 
-							countdown := BTLE_MEMORY_LEN;
- 
+ 							sample_pairs_count := 1;
 						end if;
 
 					when STATE_COUNTDOWN =>
@@ -217,18 +216,29 @@ begin
 						out_rts <= '1';
 						out_valid <= '0';
 
-						if memory_sample_valid = '1' then
+						if sample_pairs_count <= BTLE_MEMORY_LEN then
+						
+							if memory_sample_valid = '1' then
 
-							out_real <= signed(oldest_sample (31 downto 16));
-							out_imag <= signed(oldest_sample (15 downto  0));
+								out_real <= signed(oldest_sample (31 downto 16));
+								out_imag <= signed(oldest_sample (15 downto  0));
+								out_valid <= '1';
+
+								sample_pairs_count := sample_pairs_count + 1;
+							
+							end if;
+
+						elsif sample_pairs_count < 1024 then
+
+							out_real <= (others => '0');
+							out_imag <= (others => '0');
 							out_valid <= '1';
 
-							countdown := countdown - 1;
-							
-						end if;
+							sample_pairs_count := sample_pairs_count + 1;
 
-						if countdown = 0 then
+						else
 						
+							sample_pairs_count := 0;
 							state <= STATE_WAIT_DETECT;
 
 						end if;
