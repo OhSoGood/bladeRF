@@ -23,10 +23,10 @@ architecture testbench of btle_dpram_tb is
 		signal reset:		std_logic := '0';
 
 		signal wr_data:		std_logic_vector(31 downto 0);
-		signal wr_addr: 	std_logic_vector(9 downto 0);
+		signal wr_addr: 	unsigned(9 downto 0);
 		signal wr_en:		std_logic := '0';
 
-		signal rd_addr:		std_logic_vector(9 downto 0);
+		signal rd_addr:		unsigned(9 downto 0);
 		signal rd_data:		std_logic_vector(31 DOWNTO 0);
 	
 begin
@@ -59,8 +59,8 @@ begin
 			for i in 1020 to 1030  loop
  				wait until rising_edge(clock);
 
- 				wr_addr <= std_logic_vector(to_unsigned(i, 10));
- 				wr_data <= std_logic_vector(to_unsigned(i, 32));
+ 				wr_addr <= to_unsigned(i, wr_addr'length);
+ 				wr_data <= std_logic_vector(to_unsigned(i, wr_data'length));
  				wr_en <= '1';
 
  			end loop;
@@ -69,11 +69,11 @@ begin
  			wait until rising_edge(clock);
  			wait until rising_edge(clock);
 
-			rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+			rd_addr <= to_unsigned(v mod 1024, rd_addr'length);
 			v := v + 1;
  			wait until rising_edge(clock);
 
-			rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+			rd_addr <= to_unsigned(v mod 1024, rd_addr'length);
 			v := v + 1;
  			wait until rising_edge(clock);
 
@@ -83,22 +83,13 @@ begin
 					report "Addr:" & to_string(v - 2) & " Data:" & to_string(rd_data)
 						severity failure;
 
-				rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+				rd_addr <= to_unsigned(v mod 1024, rd_addr'length);
 				v := v + 1;
 
 				wait until rising_edge(clock);
 
 			end loop;
 			
-
---			for i in 0 to 9  loop
---				rd_addr <= std_logic_vector(to_unsigned(i + 1, 10));
--- 				wait until rising_edge(clock);
- 					
---					
---						report "Addr:" & to_string(i) & " i:" & to_string(i) & " Data:" & to_string(rd_data) & " Expected:" & to_string(i + 1020)
---						severity failure;
---			end loop;
 
  			report("End of testbench. All tests passed.");
 

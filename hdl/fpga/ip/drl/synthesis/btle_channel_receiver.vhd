@@ -40,16 +40,12 @@ architecture rtl of btle_channel_receiver is
 	type ch_state_type is ( STATE_WAIT_DETECT, STATE_WAIT_CTS, STATE_COUNTDOWN );
 	signal state : ch_state_type;
 
-	signal memory_clock_en : std_logic;
-	signal memory_sample_valid : std_logic;
+	signal iq_to_mem : 					std_logic_vector(31 downto 0) := (others => '0');
+	signal iq_to_mem_wr_addr :			unsigned(9 downto 0) := (others => '0');
+	signal iq_to_mem_valid : 			std_logic := '0';
 
-	signal newest_sample : std_logic_vector(31 downto 0) := (others => '0');
-	signal demod_sample  : std_logic_vector(31 downto 0);	
-	signal oldest_sample : std_logic_vector(31 downto 0);
-	
-	signal demod_real: signed(15 downto 0) := (others => '0');
-	signal demod_imag: signed(15 downto 0) := (others => '0');
-	signal demod_valid: std_logic := '0';
+	signal iq_from_mem : 				std_logic_vector(31 downto 0) := (others => '0');
+	signal iq_from_mem_rd_addr :		unsigned(9 downto 0) := (others => '0');
 
     signal bits: std_logic := '0';
     signal bits_valid: std_logic := '0';
@@ -57,27 +53,26 @@ architecture rtl of btle_channel_receiver is
 
 begin
 
-	delay_iq:
-	entity work.btle_delay_line
-	generic map( W => 32, L => BTLE_MEMORY_LEN, T => BTLE_DEMOD_TAP_POSITION )
-	port map (
-		clock => clock,
-		clock_en => memory_clock_en,
-		sync_reset => reset,
-		in_data => newest_sample,
-		out_valid => memory_sample_valid,
-		out_data => oldest_sample,
-		out_data_tap => demod_sample
+	iq_memory:
+	entity work.btle_dpram
+	port map(
+		clock			=> 	clock,
+		reset			=>	reset,	
+		in_wr_data		=> 	iq_to_mem,
+		in_wr_addr		=>	iq_to_mem_wr_addr,
+		in_wr_en		=>	iq_to_mem_valid,
+		in_rd_addr		=>	iq_from_mem_rd_addr,
+		out_rd_data		=>  iq_from_mem
 	);
-	
+
 	demod: 
 	entity work.btle_demod_matched 
 	port map (
     	clock => clock,
     	reset => reset,
-        in_real => demod_real,
-        in_imag => demod_imag,
-        in_valid => demod_valid,
+        in_real => in_real,
+        in_imag => in_imag,
+        in_valid => in_valid,
         out_bit => bits,
         out_valid => bits_valid
   	);
@@ -92,76 +87,45 @@ begin
 		out_detect => detection
 	);
 
+	detector:
+	process(clock, reset)
+		begin
+			if reset = '1' then
+				out_detected <= '0';
+			elsif rising_edge(clock) then
+				out_detected <= detection;
+			end if;
+		end
+	process;
+
 	memory_in: 
 	process(clock, reset) is
 		begin
 			if reset = '1' then
 
-				newest_sample <= (others => '0');
-				
-				out_detected <= '0';
-
-				memory_clock_en <= '0';
-				
+				iq_to_mem <= (others => '0');
+				iq_to_mem_wr_addr <= (others => '0');
+	 			iq_to_mem_valid <= '0';
+	
 			elsif rising_edge(clock) then
 
-				memory_clock_en <= '0';
+				iq_to_mem_valid <= '0';
 
 				if in_valid = '1' then		
 					
- 					newest_sample <=  std_logic_vector(in_real & in_imag);				
-					memory_clock_en <= '1';
+ 					iq_to_mem <=  std_logic_vector(in_real & in_imag);
+					iq_to_mem_valid <= '1';
 
-				end if;
-
-				out_detected <= detection;
-				
+					if iq_to_mem_wr_addr = 1023 then
+						iq_to_mem_wr_addr <= to_unsigned(0, iq_to_mem_wr_addr'length);
+					else
+						iq_to_mem_wr_addr <= iq_to_mem_wr_addr + 1;
+					end if;
+				end if;				
 			end if;
 		end 
 	process;
 
-
-	memory_to_demod:
-	process(clock, reset) is
-		begin
-			if reset = '1' then
-
-				demod_real <= (others => '0');
-				demod_imag <= (others => '0');
-				demod_valid <= '0';
-				
-			elsif rising_edge(clock) then
-
-				demod_valid <= '0';
-				
-				if memory_sample_valid = '1' then
-				
-					demod_real <= signed(demod_sample (31 downto 16));
-					demod_imag <= signed(demod_sample (15 downto  0));
-					demod_valid <= '1';	
-
-				end if;
-
-			end if;
-		end
-	process;
-
-
-
---	state_fsm:
---	process(clock, reset) is
---		begin
---			if reset = '1' then
---				state <= STATE_WAIT_DETECT;
---			elsif rising_edge(clock) then
---				case state is
---					when STATE_WAIT_DETECT =>
---
---			
---				state <= state_next;
---			end if;
---		end
---	process;
 
 	state_fsm:
 	process(clock, reset) is
@@ -175,6 +139,8 @@ begin
 				out_real <= (others => '0');
 				out_imag <= (others => '0');
 				out_valid <= '0';
+				iq_from_mem_rd_addr <= (others => '0');
+				
 				state <= STATE_WAIT_DETECT;
 				
 			elsif rising_edge(clock) then
@@ -189,6 +155,7 @@ begin
 						
 						if detection = '1' then
 
+							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
 							out_rts <= '1';
 							state <= STATE_WAIT_CTS;
 	
@@ -217,15 +184,22 @@ begin
 						out_valid <= '0';
 
 						if sample_pairs_count <= BTLE_MEMORY_LEN then
-						
-							if memory_sample_valid = '1' then
 
-								out_real <= signed(oldest_sample (31 downto 16));
-								out_imag <= signed(oldest_sample (15 downto  0));
+							if iq_from_mem_rd_addr /= iq_to_mem_wr_addr then
+							
+								out_real <= signed(iq_from_mem (31 downto 16));
+								out_imag <= signed(iq_from_mem (15 downto  0));
 								out_valid <= '1';
 
 								sample_pairs_count := sample_pairs_count + 1;
-							
+
+								if iq_from_mem_rd_addr = 1023 then
+									iq_from_mem_rd_addr <= to_unsigned(0, iq_from_mem_rd_addr'length) ;
+								else
+									iq_from_mem_rd_addr <= iq_from_mem_rd_addr + 1;
+								
+								end if;
+								
 							end if;
 
 						elsif sample_pairs_count < 1024 then
