@@ -49,14 +49,14 @@ begin
     
     stimulus: 
     process
-		variable v : integer := 0;
+		variable v : integer := 1020;
     	begin
 			test_runner_setup(runner, runner_cfg);
 
 		   	wait until reset = '0';
 			wait until rising_edge(clock);
 
-			for i in 1 to 10  loop
+			for i in 1020 to 1030  loop
  				wait until rising_edge(clock);
 
  				wr_addr <= std_logic_vector(to_unsigned(i, 10));
@@ -68,17 +68,37 @@ begin
  			wait until rising_edge(clock);
  			wait until rising_edge(clock);
  			wait until rising_edge(clock);
+
+			rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+			v := v + 1;
  			wait until rising_edge(clock);
 
+			rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+			v := v + 1;
+ 			wait until rising_edge(clock);
 
-			for i in 1 to 10  loop
-			 	rd_addr <= std_logic_vector(to_unsigned(i, 10));
-			 	
- 				wait until rising_edge(clock);
+			for i in 1 to 9 loop
+			
+				assert to_integer(unsigned(rd_data)) = v - 2
+					report "Addr:" & to_string(v - 2) & " Data:" & to_string(rd_data)
+						severity failure;
 
-				report "Addr: " & to_string(i) & " Data: " & to_string(rd_data);
-				
+				rd_addr <= std_logic_vector(to_unsigned(v mod 1024, 10));
+				v := v + 1;
+
+				wait until rising_edge(clock);
+
 			end loop;
+			
+
+--			for i in 0 to 9  loop
+--				rd_addr <= std_logic_vector(to_unsigned(i + 1, 10));
+-- 				wait until rising_edge(clock);
+ 					
+--					
+--						report "Addr:" & to_string(i) & " i:" & to_string(i) & " Data:" & to_string(rd_data) & " Expected:" & to_string(i + 1020)
+--						severity failure;
+--			end loop;
 
  			report("End of testbench. All tests passed.");
 
