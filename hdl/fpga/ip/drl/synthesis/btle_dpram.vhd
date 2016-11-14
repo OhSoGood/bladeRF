@@ -25,9 +25,24 @@ end btle_dpram;
 
 architecture rtl of btle_dpram is
 
+component dpram
+	PORT
+	(
+		aclr		: IN STD_LOGIC  := '0';
+		clock		: IN STD_LOGIC  := '1';
+		data		: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
+		rdaddress		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
+		wraddress		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
+		wren		: IN STD_LOGIC  := '0';
+		q		: OUT STD_LOGIC_VECTOR (31 DOWNTO 0)
+	);
+end component;
+
+
 begin
 
-	u_dpr : entity work.dpram
+	u_dpr : component dpram
+		generic map (sim_show_memory_data_in_port_b_layout => "OFF")
 		port map (
 			clock		=> clock,
 			aclr		=> reset,
