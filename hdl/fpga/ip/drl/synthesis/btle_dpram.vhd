@@ -42,7 +42,7 @@ end component;
 begin
 
 	u_dpr : component dpram
-		generic map (sim_show_memory_data_in_port_b_layout => "OFF")
+	--	generic map (sim_show_memory_data_in_port_b_layout => "OFF")
 		port map (
 			clock		=> clock,
 			aclr		=> reset,
