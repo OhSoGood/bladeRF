@@ -10,6 +10,7 @@ set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/a
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/tx_meta_fifo/tx_meta_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/rx_meta_fifo/rx_meta_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/fft/fft/synthesis/fft.qip]]
+set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/dpram/dpram.qip]]
 
 # Explicitly include Nios mem_init
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/nios_system/software/bladeRF_nios/mem_init/meminit.qip]]
@@ -34,7 +35,7 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_matched.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_aa_detector.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
-
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_dpram.vhd]]
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/fx3_gpif.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/bladerf-ble.vhd]]
