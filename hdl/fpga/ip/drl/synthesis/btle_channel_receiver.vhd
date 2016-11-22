@@ -49,6 +49,7 @@ architecture rtl of btle_channel_receiver is
 							STATE_SEND_TIMESTAMP1,
 							STATE_SEND_TIMESTAMP2,
 							STATE_SEND_DECODE_STATUS,
+							STATE_SEND_AA,
 							STATE_SEND_PAYLOAD_COUNT,
 							STATE_SEND_PAYLOAD,
 							STATE_SEND_SAMPLE_COUNT,
@@ -73,8 +74,9 @@ architecture rtl of btle_channel_receiver is
 	signal demod_out_seq: std_logic := '0';
 	signal demod_out_valid: std_logic := '0';
 
-    signal aa_detected : std_logic := '0';
-	signal aa_timestamp : unsigned (63 downto 0);
+	signal preamble_aa:					std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+    signal aa_detected : 				std_logic := '0';
+	signal aa_timestamp : 				unsigned (63 downto 0);
 
     signal dew_out_seq: std_logic := '0';
     signal dew_out_valid: std_logic := '0';
@@ -127,9 +129,8 @@ begin
     	reset => reset,
 		in_seq => demod_out_seq,
 		in_valid => demod_out_valid,
-		out_seq => open,
-		out_valid => open,
-		out_detect => aa_detected
+		out_preamble_aa => preamble_aa,
+		out_detected => aa_detected
 	);
 
 	dewhiten:
@@ -416,9 +417,23 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state <= STATE_SEND_PAYLOAD_COUNT;
+ 							state <= STATE_SEND_AA;
  						end if;
 
+ 					when STATE_SEND_AA =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= signed(preamble_aa(31 downto 16));
+							out_real <= signed(preamble_aa(15 downto 0));
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+ 							state <= STATE_SEND_PAYLOAD_COUNT;
+						end if;
+ 					
 					when STATE_SEND_PAYLOAD_COUNT =>
 
 						out_rts <= '1';

@@ -9,6 +9,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
+use work.btle_common.all;
+
 entity btle_channel_receiver_discrete_tb is
 	generic(runner_cfg: string);
 end;
@@ -32,7 +34,8 @@ architecture testbench of btle_channel_receiver_discrete_tb is
     signal bits_valid: std_logic := '0';
 
     signal detection : std_logic := '0';
-    
+ 	signal preamble_aa: std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+ 	
 	shared variable detections : integer := 0;
 begin
 
@@ -62,9 +65,8 @@ begin
     	reset => reset,
 		in_seq => bits,
 		in_valid => bits_valid,
-		out_seq => open,
-		out_valid => open,
-		out_detect => detection);
+		out_preamble_aa => preamble_aa,
+		out_detected => detection);
 		
     clock <= not clock after 500 ns;
     reset <= '1', '0' after 20 ns;
@@ -81,7 +83,8 @@ begin
 			iq_enable <= '0';
 
 			assert detections = 1 report "Failed to detect exactly 1 AA burst"  severity failure;
-			
+			assert preamble_aa = "0101010101101011011111011001000101110001" report "Incorrect Preamble/AA" severity failure;
+		
         	report("End of testbench. All tests passed.");
         	test_runner_cleanup(runner);
         	std.env.finish;

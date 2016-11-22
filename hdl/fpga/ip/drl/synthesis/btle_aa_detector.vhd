@@ -10,17 +10,12 @@ use work.btle_common.all;
 
 entity btle_aa_detector is
 	port(
-		clock:			in std_logic;
-		reset:			in std_logic;
-
-		-- input signal
-		in_seq:			in std_logic;
-		in_valid:       in std_logic;
-
-		-- output bits
-		out_seq:		out std_logic;
-		out_valid:		out std_logic;
-		out_detect:		out std_logic
+		clock:				in std_logic;
+		reset:				in std_logic;
+		in_seq:				in std_logic;
+		in_valid:       	in std_logic;
+		out_preamble_aa:	out std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+		out_detected:		out std_logic
 	);
 end btle_aa_detector;
 
@@ -36,13 +31,12 @@ begin
 			if reset = '1' then
 
 				memory := (others => '0');
-				out_detect <= '0';
+				out_preamble_aa <= (others => '0');
+				out_detected <= '0';
 				
 			elsif rising_edge(clock) then
 
-				out_detect <= '0';
-				out_valid <= in_valid;
-				out_seq <= in_seq;
+				out_detected <= '0';
 				
 				if in_valid = '1' then
 	
@@ -53,7 +47,8 @@ begin
 					memory := memory(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_seq;
 
 					if memory = BTLE_BED6 then
-						out_detect <= '1';
+						out_preamble_aa <= BTLE_BED6;
+						out_detected <= '1';
 					end if;					
 				end if;
 			end if;

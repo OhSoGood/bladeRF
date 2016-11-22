@@ -30,8 +30,8 @@ architecture testbench of btle_aa_detector_tb is
 	signal bits_valid: std_logic := '0';
 
     signal detect_result: std_logic := '0';
-	signal out_seq: std_logic := '0';
-	signal out_valid: std_logic := '0';
+	signal preamble_aa: std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+
 	
 begin
     duv: entity work.btle_aa_detector 
@@ -40,9 +40,8 @@ begin
     	reset => reset,
         in_seq => bits,
         in_valid => bits_valid,
-        out_detect => detect_result,
-        out_seq => out_seq,
-        out_valid => out_valid );
+        out_detected => detect_result,
+        out_preamble_aa => preamble_aa);
 
     clock <= not clock after 500 ns;
     reset <= '1', '0' after 20 ns;
@@ -94,6 +93,7 @@ begin
 			wait until rising_edge(clock);	-- clock out the result
 
 			assert detect_result = '1' report "Missed detection!" severity failure;
+			assert preamble_aa = "0101010101101011011111011001000101110001" report "Incorrect Preamble/AA" severity failure;
 
 			report("...BED6 detected!");
 			
