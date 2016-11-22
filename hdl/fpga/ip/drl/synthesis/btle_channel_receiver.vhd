@@ -49,6 +49,7 @@ architecture rtl of btle_channel_receiver is
 							STATE_SEND_TIMESTAMP1,
 							STATE_SEND_TIMESTAMP2,
 							STATE_SEND_DECODE_STATUS,
+							STATE_SEND_PREAMBLE,
 							STATE_SEND_AA,
 							STATE_SEND_PAYLOAD_COUNT,
 							STATE_SEND_PAYLOAD,
@@ -417,8 +418,22 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state <= STATE_SEND_AA;
+ 							state <= STATE_SEND_PREAMBLE;
  						end if;
+
+ 					when STATE_SEND_PREAMBLE =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= (others => '0');
+							out_real <= "00000000" & signed(preamble_aa(39 downto 32));
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+ 							state <= STATE_SEND_AA;
+						end if;
 
  					when STATE_SEND_AA =>
 
