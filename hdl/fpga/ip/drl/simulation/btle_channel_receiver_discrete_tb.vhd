@@ -60,8 +60,10 @@ begin
    detect: entity work.btle_aa_detector port map(
      	clock => clock,
     	reset => reset,
-		in_bit => bits,
+		in_seq => bits,
 		in_valid => bits_valid,
+		out_seq => open,
+		out_valid => open,
 		out_detect => detection);
 		
     clock <= not clock after 500 ns;

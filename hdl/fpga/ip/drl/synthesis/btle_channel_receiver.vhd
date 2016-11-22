@@ -23,6 +23,7 @@ entity btle_channel_receiver is
 		in_real:		in signed(15 downto 0);
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
+		in_timestamp:	in unsigned(63 downto 0);
 
 		in_cts:         in std_logic;
 		out_rts:        out std_logic;
@@ -37,7 +38,29 @@ end btle_channel_receiver;
 
 architecture rtl of btle_channel_receiver is
 
-	type ch_state_type is ( STATE_WAIT_DETECT, STATE_WAIT_CTS, STATE_COUNTDOWN );
+	type ch_state_type is ( 
+							STATE_WAIT_DETECT, 
+							STATE_WAIT_CTS, 
+							STATE_RX_HEADER,
+							STATE_RX_PAYLOAD,
+							STATE_START_REPORT,
+							STATE_SEND_PROTOCOL_VERSION,
+							STATE_SEND_BOARD_CHANNEL_ID,
+							STATE_SEND_TIMESTAMP1,
+							STATE_SEND_TIMESTAMP2,
+							STATE_SEND_DECODE_STATUS,
+							STATE_SEND_PAYLOAD_COUNT,
+							STATE_SEND_PAYLOAD,
+							STATE_SEND_SAMPLE_COUNT,
+							STATE_SEND_SAMPLES,
+							STATE_SEND_NULL,
+							STATE_SEND_PACKET_END
+							);
+
+
+	-- 10x32 bit words = maximum payload + CRC size of BTLE 
+	type word_array is array(9 downto 0) of std_logic_vector (31 downto 0);
+
 	signal state : ch_state_type;
 
 	signal iq_to_mem : 					std_logic_vector(31 downto 0) := (others => '0');
@@ -47,10 +70,30 @@ architecture rtl of btle_channel_receiver is
 	signal iq_from_mem : 				std_logic_vector(31 downto 0) := (others => '0');
 	signal iq_from_mem_rd_addr :		unsigned(9 downto 0) := (others => '0');
 
-    signal bits: std_logic := '0';
-    signal bits_valid: std_logic := '0';
-    signal detection : std_logic := '0';
+	signal demod_out_seq: std_logic := '0';
+	signal demod_out_valid: std_logic := '0';
 
+    signal aa_detected : std_logic := '0';
+	signal aa_timestamp : unsigned (63 downto 0);
+
+    signal dew_out_seq: std_logic := '0';
+    signal dew_out_valid: std_logic := '0';
+
+	signal soh: std_logic := '0';		-- Start of header this cycle
+	signal sop: std_logic := '0';		-- Start of payload this cycle
+	
+	signal header_decoded: std_logic := '0';
+	signal header_valid: std_logic := '0';
+	signal header_bits: std_logic_vector (15 downto 0);
+	signal header_pdu_type : unsigned (3 downto 0);
+	signal header_length: unsigned (5 downto 0);
+	signal header_tx_addr : std_logic;
+	signal header_rx_addr : std_logic;
+
+	signal crc_result : std_logic_vector (23 downto 0);
+	signal crc_decoded: std_logic := '0';
+	signal crc_valid : std_logic := '0';
+	
 begin
 
 	iq_memory:
@@ -73,8 +116,8 @@ begin
         in_real => in_real,
         in_imag => in_imag,
         in_valid => in_valid,
-        out_bit => bits,
-        out_valid => bits_valid
+        out_bit => demod_out_seq,
+        out_valid => demod_out_valid
   	);
 
    	detect: 
@@ -82,10 +125,58 @@ begin
    	port map (
     	clock => clock,
     	reset => reset,
-		in_bit => bits,
-		in_valid => bits_valid,
-		out_detect => detection
+		in_seq => demod_out_seq,
+		in_valid => demod_out_valid,
+		out_seq => open,
+		out_valid => open,
+		out_detect => aa_detected
 	);
+
+	dewhiten:
+	entity work.btle_dewhitener
+	generic map(channel => 37)
+	port map (
+		clock => clock,
+		reset => reset,
+		in_restart => soh,
+		in_seq => demod_out_seq,
+		in_valid => demod_out_valid,
+		out_seq => dew_out_seq,
+		out_valid => dew_out_valid
+	);
+
+	hdr_decode:
+	entity work.btle_adv_header
+	port map(
+		clock			=>	clock,
+		reset			=>	reset,
+		in_soh		=>	soh,
+		in_seq			=>	dew_out_seq,
+		in_valid		=>	dew_out_valid,
+		out_decoded		=>	header_decoded,
+		out_valid		=>	header_valid,
+		out_bits        =>  header_bits,
+		out_pdu_type	=>  header_pdu_type,	-- out unsigned (3 downto 0);
+		out_length		=>	header_length,		--out unsigned (5 downto 0);
+		out_tx_addr		=>  header_tx_addr, 	
+		out_rx_addr		=>	header_rx_addr
+	);
+
+
+	crc_calc:	entity work.btle_crc
+	port map(
+		clock			=>	clock,
+		reset			=>	reset,
+		in_soh			=>	soh,
+		in_sop			=>	sop,
+		in_payload_len	=>	header_length,
+		in_seq			=> 	dew_out_seq,
+		in_valid		=>	dew_out_valid,
+		out_crc			=>	crc_result,
+		out_decoded		=>	crc_decoded,
+		out_valid		=>	crc_valid
+	);
+	
 
 	detector:
 	process(clock, reset)
@@ -93,7 +184,7 @@ begin
 			if reset = '1' then
 				out_detected <= '0';
 			elsif rising_edge(clock) then
-				out_detected <= detection;
+				out_detected <= aa_detected;
 			end if;
 		end
 	process;
@@ -127,10 +218,14 @@ begin
 	process;
 
 
-	state_fsm:
+	burst_fsm:
 	process(clock, reset) is
 
-		variable sample_pairs_count : integer := 0;
+		variable payload_bits: word_array;
+		variable sub_count : integer := 0;
+		variable sub_target : integer := 0;
+		variable total_count : integer := 0;
+
 		begin
 
 			if reset = '1' then
@@ -139,90 +234,332 @@ begin
 				out_real <= (others => '0');
 				out_imag <= (others => '0');
 				out_valid <= '0';
+				soh <= '0';
+				sop <= '0';
+	
 				iq_from_mem_rd_addr <= (others => '0');
 				
 				state <= STATE_WAIT_DETECT;
 				
 			elsif rising_edge(clock) then
-					
+
+				out_rts <= '0';
+				out_real <= (others => '0');
+				out_imag <= (others => '0');
+				out_valid <= '0';
+				soh <= '0';
+				sop <= '0';
+
 				case state is
+				
 					when STATE_WAIT_DETECT =>
 
-						out_rts <= '0';
-						out_real <= (others => '0');
-						out_imag <= (others => '0');
-						out_valid <= '0';
-						
-						if detection = '1' then
+						if aa_detected = '1' then
 
+							aa_timestamp <= in_timestamp;
 							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
-							out_rts <= '1';
-							state <= STATE_WAIT_CTS;
-	
+							soh <= '1';
+
+							state <= STATE_RX_HEADER;
+
+						end if;
+						
+					when STATE_RX_HEADER =>
+
+						if header_decoded = '1' then
+
+							if header_valid = '1' then
+
+								-- The header was decoded OK
+								-- -> Signal start of payload (SOP)
+								-- -> Attempt to decode the payload and CRC
+								
+								sop <= '1';
+
+								-- How many bits to receive payload + CRC?
+								-- Accumulate in groups of 32 slv for ease of processing
+								
+ 								sub_count := 0;
+ 								sub_target := (to_integer(header_length) * 8) + BTLE_CRC_LEN;
+
+								for w in 0 to payload_bits'length - 1  loop
+									payload_bits(w) := (others => '0');
+								end loop;
+								
+								state <= STATE_RX_PAYLOAD;
+
+							else
+
+								-- Header decode failed
+								-- -> No point decoding the payload as have no reliable idea how long it is
+								-- -> Start reporting with known information.
+								
+								state <= STATE_START_REPORT;
+
+							end if;
+
+						end if;
+						
+					when STATE_RX_PAYLOAD =>
+
+						if crc_decoded = '1' then
+							
+							state <= STATE_START_REPORT;
+							
+						else
+							if dew_out_valid = '1' then
+
+								if sub_count < sub_target then
+
+									-- bit 31 is lsb (received first) as per strange BTLE over the air spec
+									
+									payload_bits(sub_count / 32)(31 - (sub_count mod 32)) := dew_out_seq;
+									sub_count := sub_count + 1;
+
+								end if;
+									
+							end if;
 						end if;
 
+					when STATE_START_REPORT =>
+
+						out_rts <= '1';
+
+ 						sub_count := 0;
+ 						sub_target := 0;
+ 						total_count := 0;
+ 						
+						state <= STATE_WAIT_CTS;
+						
 					when STATE_WAIT_CTS =>
 
 						out_rts <= '1';
-						out_real <= (others => '0');
-						out_imag <= (others => '0');
-						out_valid <= '0';	
+
+						if in_cts = '1' then
+
+							out_imag <= x"5555";				
+							out_real <= x"AAAA";								
+							out_valid <= '1';
+							total_count := total_count + 1;
+
+							state <= STATE_SEND_PROTOCOL_VERSION;
+							
+						end if;
+
+					when STATE_SEND_PROTOCOL_VERSION =>
+
+						out_rts <= '1';
+						
+						if in_cts = '1' then
+
+							out_imag <= x"0000";			
+							out_real <= x"0001";								
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+							state <= STATE_SEND_BOARD_CHANNEL_ID;
+							
+						end if;
+
+					when STATE_SEND_BOARD_CHANNEL_ID =>
+
+						out_rts <= '1';
+						
+						if in_cts = '1' then
+
+							out_imag <= x"0000";				
+							out_real <= to_signed(37, out_real'length);			
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+							state <= STATE_SEND_TIMESTAMP1;
+
+						end if;
+
+					when STATE_SEND_TIMESTAMP1 =>
+
+						out_rts <= '1';
+						
+						if in_cts = '1' then
+
+							out_imag <= signed(aa_timestamp(63 downto 48));			
+							out_real <= signed(aa_timestamp(47 downto 32));			
+							out_valid <= '1';							
+ 							total_count := total_count + 1;
+
+							state <= STATE_SEND_TIMESTAMP2;
+
+						end if;
+
+					when STATE_SEND_TIMESTAMP2 =>
+
+						out_rts <= '1';
+						
+						if in_cts = '1' then
+
+							out_imag <= signed(aa_timestamp(31 downto 16));			
+							out_real <= signed(aa_timestamp(15 downto 0));			
+							out_valid <= '1';
+							total_count := total_count + 1;
+							
+							state <= STATE_SEND_DECODE_STATUS;
+						end if;
+
+					when STATE_SEND_DECODE_STATUS =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= "00000000000000" & crc_valid & header_valid;
+							out_real <= signed(header_bits);
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+ 							state <= STATE_SEND_PAYLOAD_COUNT;
+ 						end if;
+
+					when STATE_SEND_PAYLOAD_COUNT =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							if header_valid = '1' then
+
+								out_imag <= (others => '0');
+								out_real <= signed(resize(header_length , out_real'length));
+								sub_count := 0;
+
+								-- Payload plus CRC length (+3) rounded up to whole number of 32bit words (+3/4)
+								-- Maximum is 40 bytes (37 + 3) = 10 words.
+								
+								sub_target := (to_integer(header_length) + 3 + 3) / 4;
+								
+								state <= STATE_SEND_PAYLOAD;
+
+							else
+
+								out_imag <= (others => '0');
+								out_real <= (others => '0');
+								state <= STATE_SEND_SAMPLE_COUNT;
+								
+							end if;
+
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+ 							
+						end if;
+
+					when STATE_SEND_PAYLOAD =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+							out_imag <= signed(payload_bits(sub_count)(31 downto 16));
+							out_real <= signed(payload_bits(sub_count)(15 downto 0));
+							out_valid <= '1';
+							
+ 							total_count := total_count + 1;
+ 							sub_count := sub_count + 1;
+
+							if sub_count >= sub_target then
+
+								state <= STATE_SEND_SAMPLE_COUNT;
+
+							end if;
+						end if;
+						
+					when STATE_SEND_SAMPLE_COUNT =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= x"0000";
+							out_real <= to_signed(BTLE_MEMORY_LEN, out_real'length);
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+							sub_count := 0;
+							sub_target := BTLE_MEMORY_LEN;
+
+ 							state <= STATE_SEND_SAMPLES;
+ 						end if;
+
+					
+					when STATE_SEND_SAMPLES =>
+
+						out_rts <= '1';
 
 						if in_cts = '1' then
 						
-							out_real <= x"AAAA";
-							out_imag <= x"5555";
-							out_valid <= '1';
-							state <= STATE_COUNTDOWN;
-
- 							sample_pairs_count := 1;
-						end if;
-
-					when STATE_COUNTDOWN =>
-
-						out_rts <= '1';
-						out_valid <= '0';
-
-						if sample_pairs_count <= BTLE_MEMORY_LEN then
-
 							if iq_from_mem_rd_addr /= iq_to_mem_wr_addr then
-							
-								out_real <= signed(iq_from_mem (31 downto 16));
-								out_imag <= signed(iq_from_mem (15 downto  0));
-								out_valid <= '1';
 
-								sample_pairs_count := sample_pairs_count + 1;
+								out_imag <= signed(iq_from_mem (15 downto  0));	
+								out_real <= signed(iq_from_mem (31 downto 16));
+								out_valid <= '1';
 
 								if iq_from_mem_rd_addr = 1023 then
 									iq_from_mem_rd_addr <= to_unsigned(0, iq_from_mem_rd_addr'length) ;
 								else
 									iq_from_mem_rd_addr <= iq_from_mem_rd_addr + 1;
-								
+								end if;
+
+								sub_count := sub_count + 1;
+								total_count := total_count + 1;
+
+								if sub_count >= sub_target then
+
+									sub_count := 0;
+									state <= STATE_SEND_NULL;
+									
 								end if;
 								
 							end if;
 
-						elsif sample_pairs_count < 1024 then
+						end if;
 
+					when STATE_SEND_NULL =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+						
 							out_real <= (others => '0');
 							out_imag <= (others => '0');
 							out_valid <= '1';
 
-							sample_pairs_count := sample_pairs_count + 1;
+							total_count := total_count + 1;
+								
+							if total_count = 1023 then
 
-						else
-						
-							sample_pairs_count := 0;
+								state <= STATE_SEND_PACKET_END;
+
+							end if;
+
+						end if;
+
+					when STATE_SEND_PACKET_END =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+								
+							out_imag <= x"AAAA";
+							out_real <= x"5555";								
+							out_valid <= '1';
+
+							sub_count := 0;
+							total_count := 0;
 							state <= STATE_WAIT_DETECT;
 
 						end if;
 
 					when others =>
-					
-						out_rts <= '0';
-						out_real <= (others => '0');
-						out_imag <= (others => '0');
-						out_valid <= '0';
+
+						sub_count := 0;
+						total_count := 0;
 						state <= STATE_WAIT_DETECT;
 				
 				end case;

@@ -20,6 +20,7 @@ entity btle_wideband_receiver is
 		in_wb_real:		in signed(15 downto 0);
 		in_wb_imag:		in signed(15 downto 0);
 		in_wb_valid:	in std_logic;
+		in_timestamp:   in unsigned(63 downto 0);
 
 		out_real:		out signed(15 downto 0);				
 		out_imag: 		out signed(15 downto 0);
@@ -54,6 +55,9 @@ architecture rtl of btle_wideband_receiver is
 	signal ch_out_imag:		bus_array;
 	signal ch_out_valid:    std_logic_vector(num_channels - 1 downto 0);
 	signal ch_out_detected: std_logic_vector(num_channels - 1 downto 0);
+
+	signal rx_timestamp:	unsigned(63 downto 0);
+
 
 	attribute preserve : boolean;
 	attribute preserve of fft_in_real : signal is true;
@@ -93,6 +97,9 @@ architecture rtl of btle_wideband_receiver is
 
 begin
 
+
+	rx_timestamp <= in_timestamp;
+
 	rx_bank : for i in 0 to num_channels - 1 generate
 		ch_rx: entity work.btle_channel_receiver
 			generic map(samples_per_bit => samples_per_bit)
@@ -103,6 +110,7 @@ begin
 				in_real => 		ch_in_real,
 				in_imag => 		ch_in_imag,
 				in_valid => 	ch_in_valid(i),
+				in_timestamp =>	rx_timestamp,
 
 				in_cts => 		ch_in_cts(i),
 				out_rts =>		ch_out_rts(i),
@@ -256,7 +264,7 @@ begin
 			begin
 				if reset = '1' then
 
-					ch_in_cts <= (others => '0');
+					ch_in_cts <= (others => '1');
 					out_real <= (others => '0');
 					out_imag <= (others => '0');
 					out_valid <= '0';
@@ -264,7 +272,7 @@ begin
 				elsif rising_edge(clock) then
 
 					out_valid <= '0';
-					ch_in_cts <= (others => '0');
+					ch_in_cts <= (others => '1');
 					
 					if ch_out_valid(0) = '1' then
 

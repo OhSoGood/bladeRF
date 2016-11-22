@@ -48,6 +48,7 @@ begin
 		in_real => in_real,
 		in_imag => in_imag,
 		in_valid => in_valid,
+		in_timestamp => (others => '0'),
 
 		in_cts => '1',
 		out_rts => out_rts,

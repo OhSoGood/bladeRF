@@ -709,7 +709,7 @@ begin
     
 
 	U_rx_btle : entity work.btle_wideband_receiver
-	generic map(samples_per_bit => 2, num_channels => 16)
+	generic map(samples_per_bit => 2, num_channels => 1)
 	port map (
 		clock               =>  rx_clock,
 		reset               =>  rx_reset,
@@ -717,6 +717,7 @@ begin
         in_wb_real 			=>  rx_sample_corrected_i,
         in_wb_imag 			=>  rx_sample_corrected_q,
        	in_wb_valid 		=>  rx_sample_corrected_valid,
+       	in_timestamp		=>  rx_timestamp,
        	out_real 			=>  rx_sample_btle_i,
        	out_imag 			=>  rx_sample_btle_q,
        	out_valid 			=>  rx_sample_btle_valid,
@@ -1115,11 +1116,11 @@ begin
         if( rx_reset = '1' ) then
             rx_ts_reset <= '1' ;
         elsif( rising_edge(rx_clock) ) then
-            if( meta_en_rx = '1' ) then
+      --      if( meta_en_rx = '1' ) then
                 rx_ts_reset <= '0' ;
-            else
-                rx_ts_reset <= '1' ;
-            end if ;
+      --      else
+      --          rx_ts_reset <= '1' ;
+      --      end if ;
         end if ;
     end process ;
 

@@ -48,6 +48,7 @@ begin
 		in_wb_real => in_real,
 		in_wb_imag => in_imag,
 		in_wb_valid => in_valid,
+		in_timestamp => (others => '0'),
 
 		out_real => out_real,
 		out_imag => out_imag,

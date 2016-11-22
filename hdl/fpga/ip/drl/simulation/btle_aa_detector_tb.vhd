@@ -30,15 +30,19 @@ architecture testbench of btle_aa_detector_tb is
 	signal bits_valid: std_logic := '0';
 
     signal detect_result: std_logic := '0';
-
+	signal out_seq: std_logic := '0';
+	signal out_valid: std_logic := '0';
+	
 begin
     duv: entity work.btle_aa_detector 
     port map(
     	clock => clock,
     	reset => reset,
-        in_bit => bits,
+        in_seq => bits,
         in_valid => bits_valid,
-        out_detect => detect_result);
+        out_detect => detect_result,
+        out_seq => out_seq,
+        out_valid => out_valid );
 
     clock <= not clock after 500 ns;
     reset <= '1', '0' after 20 ns;
