@@ -258,6 +258,9 @@ begin
 
 						if aa_detected = '1' then
 
+							-- Save the timetamp and the 'read' buffer position when the AA was detected
+							-- so that symbols (including some pretrigger) can be reported
+							
 							aa_timestamp <= in_timestamp;
 							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
 							soh <= '1';
@@ -506,13 +509,24 @@ begin
 
 						if in_cts = '1' then
 
+							-- How amny samples to send?
+							-- If header and CRC were correct then just send enough to cover the burst plus
+							-- pre/post trigger.
+							-- Otherwise, send the worst case.
+
+							if header_valid = '1' and crc_valid = '1' then
+								sub_target := BTLE_SAMPLES_PER_SYMBOL * (BTLE_TRIGGER_LEN + BTLE_PREAMBLE_LEN + BTLE_AA_LEN + BTLE_HEADER_LEN + (to_integer(header_length) * 8) + BTLE_CRC_LEN + BTLE_TRIGGER_LEN);
+							else
+								sub_target := BTLE_MEMORY_LEN;
+							end if;
+
 							out_imag <= x"0000";
-							out_real <= to_signed(BTLE_MEMORY_LEN, out_real'length);
+							out_real <= to_signed(sub_target, out_real'length);
 							out_valid <= '1';
  							total_count := total_count + 1;
 
 							sub_count := 0;
-							sub_target := BTLE_MEMORY_LEN;
+
 
  							state <= STATE_SEND_SAMPLES;
  						end if;
