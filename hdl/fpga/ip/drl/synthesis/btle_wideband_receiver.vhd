@@ -34,6 +34,15 @@ end btle_wideband_receiver;
 
 architecture rtl of btle_wideband_receiver is
 
+	type ch_array_type is array (0 to 15) OF integer;
+	constant ch_idx_array : ch_array_type := (5, 6, 7, 8, 9, 10, 38, 40, 40, 40, 37, 0, 1, 2, 3, 4 );
+
+	type wb_state_type is ( 
+							STATE_WAIT_RTS, 
+							STATE_SENDING );
+
+	signal state : wb_state_type;
+	
 	signal fft_in_real: 	signed (15 downto 0);
 	signal fft_in_imag: 	signed (15 downto 0);
 	signal fft_in_valid: 	std_logic;
@@ -100,30 +109,31 @@ begin
 
 	rx_timestamp <= in_timestamp;
 
-	rx_bank : for i in 0 to num_channels - 1 generate
-		ch_rx: entity work.btle_channel_receiver
-			generic map(samples_per_bit => samples_per_bit)
-			port map(
-				clock => 		clock,
-				reset => 		reset,
-
-				in_real => 		ch_in_real,
-				in_imag => 		ch_in_imag,
-				in_valid => 	ch_in_valid(i),
-				in_timestamp =>	rx_timestamp,
-
-				in_cts => 		ch_in_cts(i),
-				out_rts =>		ch_out_rts(i),
-
-				out_real => 	ch_out_real(i),
-				out_imag => 	ch_out_imag(i),
-				out_valid => 	ch_out_valid(i),
-				out_detected => ch_out_detected(i) 
-			);
-
-	end generate;
-
 	fft_based: if num_channels > 1 generate
+
+		rx_bank : for i in 0 to num_channels - 1 
+		generate
+			ch_rx: entity work.btle_channel_receiver
+				generic map(channel_index => ch_idx_array(i), samples_per_bit => samples_per_bit)
+				port map(
+					clock => 		clock,
+					reset => 		reset,
+
+					in_real => 		ch_in_real,
+					in_imag => 		ch_in_imag,
+					in_valid => 	ch_in_valid(i),
+					in_timestamp =>	rx_timestamp,
+
+					in_cts => 		ch_in_cts(i),
+					out_rts =>		ch_out_rts(i),
+
+					out_real => 	ch_out_real(i),
+					out_imag => 	ch_out_imag(i),
+					out_valid => 	ch_out_valid(i),
+					out_detected => ch_out_detected(i) 
+				);
+
+		end generate;
 
     	fft : entity work.btle_fft_streamer
 		generic map(order => num_channels)
@@ -190,6 +200,9 @@ begin
 
 		ch_output:
 		process(clock, reset) is
+
+			variable active_channel: integer := 0;
+			
 			begin
 				if reset = '1' then
 
@@ -198,6 +211,8 @@ begin
 					out_imag <= (others => '0');
 					out_valid <= '0';
 
+					state <= STATE_WAIT_RTS;
+					
 				elsif rising_edge(clock) then
 
 					ch_in_cts <= (others => '0');
@@ -205,35 +220,80 @@ begin
 					out_imag <= (others => '0');
 					out_valid <= '0';
 
-					--for ch in 0 to num_channels - 1 loop
-					--	if ch_out_valid(ch) and '1' then
-					--	
-					--			out_real <= ch_out_real(ch);
-					--		out_imag <= ch_out_imag(ch);
-					--		out_valid <= '1';	
+					case state is
 
-	--					end if;
-	--				end loop;
+						when STATE_WAIT_RTS =>
 
-					if ch_out_rts(10) = '1' then
-					
-						ch_in_cts(10) <= '1';
+							for ch in 0 to num_channels - 1 loop
 
-						if ch_out_valid(10) = '1' then
+								if ch_out_rts(ch) = '1' then
+
+									-- Found channel to send
+									-- -> Store and transition
+
+									ch_in_cts(ch) <= '1';
+									active_channel := ch;
+									state <= STATE_SENDING;
+									exit;
+									
+								end if;
+									
+							end loop;
+
+						when STATE_SENDING =>
+
+							if ch_out_rts(active_channel) = '1' then
+
+								ch_in_cts(active_channel) <= '1';
+
+								if ch_out_valid(active_channel) = '1' then
 						
-							out_real <= ch_out_real(10);
-							out_imag <= ch_out_imag(10);
-							out_valid <= '1';
+									out_real <= ch_out_real(active_channel);
+									out_imag <= ch_out_imag(active_channel);
+									out_valid <= '1';	
 
-						end if;
+								end if;
+								
+							else
 
-					end if;
+								-- Channel released RTS, so is finished sending
+								-- -> Wait for the next one
+								
+								state <= STATE_WAIT_RTS;
+
+							end if;
+
+						when others =>
+
+							state <= STATE_WAIT_RTS;
+
+					end case;
 					
 				end if;
 			end
 		process;
 
 	else generate
+
+		single_rx: entity work.btle_channel_receiver
+			generic map(channel_index => 37, samples_per_bit => samples_per_bit)
+			port map(
+				clock => 		clock,
+				reset => 		reset,
+
+				in_real => 		ch_in_real,
+				in_imag => 		ch_in_imag,
+				in_valid => 	ch_in_valid(0),
+				in_timestamp =>	rx_timestamp,
+
+				in_cts => 		ch_in_cts(0),
+				out_rts =>		ch_out_rts(0),
+
+				out_real => 	ch_out_real(0),
+				out_imag => 	ch_out_imag(0),
+				out_valid => 	ch_out_valid(0),
+				out_detected => ch_out_detected(0) 
+			);
 
 		single_input:
 			process(clock, reset) is

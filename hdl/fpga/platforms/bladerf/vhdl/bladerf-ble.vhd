@@ -709,7 +709,7 @@ begin
     
 
 	U_rx_btle : entity work.btle_wideband_receiver
-	generic map(samples_per_bit => 2, num_channels => 1)
+	generic map(samples_per_bit => 2, num_channels => 16)
 	port map (
 		clock               =>  rx_clock,
 		reset               =>  rx_reset,

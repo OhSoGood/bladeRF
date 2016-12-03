@@ -14,6 +14,7 @@ use work.btle_common.all;
 
 entity btle_channel_receiver is
 	generic(
+		channel_index : integer := 37;
 		samples_per_bit : natural := 2
 	);
 	port(
@@ -136,7 +137,7 @@ begin
 
 	dewhiten:
 	entity work.btle_dewhitener
-	generic map(channel => 37)
+	generic map(channel => channel_index)
 	port map (
 		clock => clock,
 		reset => reset,
@@ -373,7 +374,7 @@ begin
 						if in_cts = '1' then
 
 							out_imag <= x"0000";				
-							out_real <= to_signed(37, out_real'length);			
+							out_real <= to_signed(channel_index, out_real'length);			
 							out_valid <= '1';
  							total_count := total_count + 1;
 
