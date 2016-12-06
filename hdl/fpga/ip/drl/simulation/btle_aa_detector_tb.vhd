@@ -35,11 +35,15 @@ architecture testbench of btle_aa_detector_tb is
 	
 begin
     duv: entity work.btle_aa_detector 
+	generic map(num_channels => 16, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
     port map(
     	clock => clock,
     	reset => reset,
         in_seq => bits,
         in_valid => bits_valid,
+        in_ch_index => 0,
+        in_preamble_aa => (others => '0'),
+        in_aa_valid => '0',
         out_detected => detect_result,
         out_preamble_aa => preamble_aa);
 

@@ -9,6 +9,7 @@ use ieee.numeric_std.all;
 
 package btle_common is
 	constant BTLE_SAMPLES_PER_SYMBOL : integer := 2;
+	constant BTLE_MAXIMUM_AA_MEMORY : integer := 5;
 
 	-- Bits
 	constant BTLE_TRIGGER_LEN: integer := 25;
