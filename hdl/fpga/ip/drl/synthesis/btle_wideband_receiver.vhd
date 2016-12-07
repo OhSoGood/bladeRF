@@ -182,15 +182,13 @@ begin
 
 				elsif rising_edge(clock) then
 
+					ch_in_valid <= (others => '0');
+						
 					if fft_out_valid = '1' then
 
 						ch_in_real <= fft_out_real;
 						ch_in_imag <= fft_out_imag;
 						ch_in_valid(to_integer(fft_out_idx)) <= '1';
-
-					else 
-
-						ch_in_valid <= (others => '0');
 
 					end if;
 					
