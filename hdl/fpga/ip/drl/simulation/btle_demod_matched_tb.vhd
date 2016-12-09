@@ -34,14 +34,17 @@ architecture testbench of btle_demod_matched_tb is
     
 begin
     duv: entity work.btle_demod_matched 
+	generic map( samples_per_bit => 2, max_channels => 16)
     port map(
     	clock => clock,
     	reset => reset,
         in_real => iq_real,
         in_imag => iq_imag,
         in_valid => iq_valid,
+        in_fft_idx => to_unsigned(5, 5),
         out_bit => out_bit,
-        out_valid => out_valid
+        out_valid => out_valid,
+        out_fft_idx => open
  	);
 
 	iq: entity work.btle_iq_streamer 

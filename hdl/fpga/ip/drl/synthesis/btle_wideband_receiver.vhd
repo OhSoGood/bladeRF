@@ -7,6 +7,8 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
+use work.btle_common.all;
+
 entity btle_wideband_receiver is
 	generic(
 		samples_per_bit : natural := 2;
@@ -31,7 +33,6 @@ entity btle_wideband_receiver is
 end btle_wideband_receiver;
 
 
-
 architecture rtl of btle_wideband_receiver is
 
 	type ch_array_type is array (0 to 15) OF integer;
@@ -40,74 +41,76 @@ architecture rtl of btle_wideband_receiver is
 	type wb_state_type is ( 
 							STATE_WAIT_RTS, 
 							STATE_SENDING );
-
 	signal state : wb_state_type;
-	
-	signal fft_in_real: 	signed (15 downto 0);
-	signal fft_in_imag: 	signed (15 downto 0);
-	signal fft_in_valid: 	std_logic;
 
-	signal fft_out_idx:		unsigned (4 downto 0);
-	signal fft_out_real: 	signed (15 downto 0);
-	signal fft_out_imag: 	signed (15 downto 0);
-	signal fft_out_valid: 	std_logic;
+	signal wideband_input : iq_bus_t;
+	signal fft_output: tdm_iq_bus_t;
+	signal demod_input: tdm_iq_bus_t;
+	signal demod_output: tdm_bit_bus_t;
 
-	type bus_array is array(num_channels - 1 downto 0) of signed (15 downto 0);
+	type bus_array is array(num_channels - 1 downto 0) of sample_t;
 
-	signal ch_in_real: 		signed (15 downto 0);
-	signal ch_in_imag: 		signed (15 downto 0);
-	signal ch_in_valid:		std_logic_vector(num_channels - 1 downto 0);
-	signal ch_in_cts:		std_logic_vector(num_channels - 1 downto 0);
+	signal ch_in_bit:			std_logic;
+	signal ch_in_bit_valid:		std_logic_vector(num_channels - 1 downto 0);
 
-	signal ch_out_rts:		std_logic_vector(num_channels - 1 downto 0);
-	signal ch_out_real: 	bus_array;
-	signal ch_out_imag:		bus_array;
-	signal ch_out_valid:    std_logic_vector(num_channels - 1 downto 0);
-	signal ch_out_detected: std_logic_vector(num_channels - 1 downto 0);
+	signal ch_in_real: 			sample_t;
+	signal ch_in_imag: 			sample_t;
+	signal ch_in_valid:			std_logic_vector(num_channels - 1 downto 0);
+	signal ch_in_cts:			std_logic_vector(num_channels - 1 downto 0);
+
+	signal ch_out_rts:			std_logic_vector(num_channels - 1 downto 0);
+	signal ch_out_real: 		bus_array;
+	signal ch_out_imag:			bus_array;
+	signal ch_out_valid:    	std_logic_vector(num_channels - 1 downto 0);
+	signal ch_out_detected: 	std_logic_vector(num_channels - 1 downto 0);
 
 	signal rx_timestamp:	unsigned(63 downto 0);
 
 
-	attribute preserve : boolean;
-	attribute preserve of fft_in_real : signal is true;
-	attribute preserve of fft_in_imag : signal is true;
-	attribute preserve of fft_in_valid : signal is true;
-	attribute preserve of fft_out_idx : signal is true;
-	attribute preserve of fft_out_real : signal is true;
-	attribute preserve of fft_out_imag : signal is true;
-	attribute preserve of fft_out_valid : signal is true;
-	attribute preserve of ch_in_real : signal is true;
-	attribute preserve of ch_in_imag : signal is true;
-	attribute preserve of ch_in_valid : signal is true;
-	attribute preserve of ch_in_cts : signal is true;
-	attribute preserve of ch_out_rts : signal is true;
-	attribute preserve of ch_out_real : signal is true;
-	attribute preserve of ch_out_imag : signal is true;
-	attribute preserve of ch_out_valid : signal is true;
-	attribute preserve of ch_out_detected : signal is true;
+--	attribute preserve : boolean;
+--	attribute preserve of ch_in_real : signal is true;
+--	attribute preserve of ch_in_imag : signal is true;
+--	attribute preserve of ch_in_valid : signal is true;
+--	attribute preserve of ch_in_cts : signal is true;
+--	attribute preserve of ch_out_rts : signal is true;
+--	attribute preserve of ch_out_real : signal is true;
+--	attribute preserve of ch_out_imag : signal is true;
+--	attribute preserve of ch_out_valid : signal is true;
+--	attribute preserve of ch_out_detected : signal is true;
 
-	attribute syn_keep : boolean;
-	attribute syn_keep of fft_in_real : signal is true;
-	attribute syn_keep of fft_in_imag : signal is true;
-	attribute syn_keep of fft_in_valid : signal is true;
-	attribute syn_keep of fft_out_idx : signal is true;
-	attribute syn_keep of fft_out_real : signal is true;
-	attribute syn_keep of fft_out_imag : signal is true;
-	attribute syn_keep of fft_out_valid : signal is true;
-	attribute syn_keep of ch_in_real : signal is true;
-	attribute syn_keep of ch_in_imag : signal is true;
-	attribute syn_keep of ch_in_valid : signal is true;
-	attribute syn_keep of ch_in_cts : signal is true;
-	attribute syn_keep of ch_out_rts : signal is true;
-	attribute syn_keep of ch_out_real : signal is true;
-	attribute syn_keep of ch_out_imag : signal is true;
-	attribute syn_keep of ch_out_valid : signal is true;
-	attribute syn_keep of ch_out_detected : signal is true;
+--	attribute syn_keep : boolean;
+--	attribute syn_keep of ch_in_real : signal is true;
+--	attribute syn_keep of ch_in_imag : signal is true;
+--	attribute syn_keep of ch_in_valid : signal is true;
+--	attribute syn_keep of ch_in_cts : signal is true;
+--	attribute syn_keep of ch_out_rts : signal is true;
+--	attribute syn_keep of ch_out_real : signal is true;
+--	attribute syn_keep of ch_out_imag : signal is true;
+--	attribute syn_keep of ch_out_valid : signal is true;
+--	attribute syn_keep of ch_out_detected : signal is true;
 
 begin
 
-
 	rx_timestamp <= in_timestamp;
+
+	demod: 
+	entity work.btle_demod_matched 
+		generic map (
+			samples_per_bit => samples_per_bit, 
+			max_channels => num_channels
+		)
+		port map (
+    		clock 		=> clock,
+    		reset 		=> reset,
+        	in_real 	=> demod_input.real,
+        	in_imag 	=> demod_input.imag,
+			in_valid 	=> demod_input.valid,
+        	in_fft_idx 	=> demod_input.timeslot,
+        	out_bit 	=> demod_output.bit,
+        	out_valid 	=> demod_output.valid,
+        	out_fft_idx => demod_output.timeslot
+  		);
+
 
 	fft_based: if num_channels > 1 generate
 
@@ -116,22 +119,25 @@ begin
 			ch_rx: entity work.btle_channel_receiver
 				generic map(channel_index => ch_idx_array(i), samples_per_bit => samples_per_bit)
 				port map(
-					clock => 		clock,
-					reset => 		reset,
+					clock => 			clock,
+					reset => 			reset,
 
-					in_real => 		ch_in_real,
-					in_imag => 		ch_in_imag,
-					in_valid => 	ch_in_valid(i),
-					in_timestamp =>	rx_timestamp,
+					in_real => 			ch_in_real,
+					in_imag => 			ch_in_imag,
+					in_valid => 		ch_in_valid(i),
+					in_timestamp =>		rx_timestamp,
 
-					in_cts => 		ch_in_cts(i),
-					out_rts =>		ch_out_rts(i),
+					in_demod_seq => 	ch_in_bit,
+					in_demod_valid =>	ch_in_bit_valid(i),
+					
+					in_cts => 			ch_in_cts(i),
+					out_rts =>			ch_out_rts(i),
 
-					out_real => 	ch_out_real(i),
-					out_imag => 	ch_out_imag(i),
-					out_valid => 	ch_out_valid(i),
-					out_detected => ch_out_detected(i) 
-				);
+					out_real => 		ch_out_real(i),
+					out_imag => 		ch_out_imag(i),
+					out_valid => 		ch_out_valid(i),
+					out_detected => 	ch_out_detected(i) 
+				);	
 
 		end generate;
 
@@ -142,39 +148,63 @@ begin
 			reset 			=> reset,
 			enable			=> enable,
 
-			in_real  		=> fft_in_real,
-			in_imag	   		=> fft_in_imag,
-			in_valid       	=> fft_in_valid,
-		
-			out_bin_idx   	=> fft_out_idx,
-			out_real		=> fft_out_real,
-			out_imag  		=> fft_out_imag,
-			out_valid       => fft_out_valid
+			in_real  		=> wideband_input.real,
+			in_imag	   		=> wideband_input.imag,
+			in_valid       	=> wideband_input.valid,
+			
+			out_real		=> fft_output.real,
+			out_imag  		=> fft_output.imag,
+			out_valid       => fft_output.valid,
+			out_bin_idx   	=> fft_output.timeslot
     	);
+
 
 		fft_input:
 		process(clock, reset) is
 			begin
 				if reset = '1' then
 
-					fft_in_real <= (others => '0');
-					fft_in_imag <= (others => '0');
-					fft_in_valid <= '0';
+					wideband_input.real <= (others => '0');
+					wideband_input.imag <= (others => '0');
+					wideband_input.valid <= '0';
 
 				elsif rising_edge(clock) then
 
-					fft_in_valid <= in_wb_valid;
-					fft_in_real <= in_wb_real;
-					fft_in_imag <= in_wb_imag;
+					wideband_input.real <= in_wb_real;
+					wideband_input.imag <= in_wb_imag;
+					wideband_input.valid <= in_wb_valid;
 					
 				end if;
 			end
 		process;
 
-		fft_output:
+
+		fft_to_demod:
 		process(clock, reset) is
 			begin
 				if reset = '1' then
+
+					demod_input.real <= (others => '0');
+					demod_input.imag <= (others => '0');
+					demod_input.valid <= '0';
+					demod_input.timeslot <= (others => '0');
+
+				elsif rising_edge(clock) then
+
+					demod_input <= fft_output;
+					
+				end if;
+			end
+		process;	
+
+
+		demod_to_ch:
+		process(clock, reset) is
+			begin
+				if reset = '1' then
+
+					ch_in_bit <= '0';
+					ch_in_bit_valid <= (others => '0');
 
 					ch_in_real <= (others => '0');
 					ch_in_imag <= (others => '0');
@@ -182,13 +212,22 @@ begin
 
 				elsif rising_edge(clock) then
 
-					ch_in_valid <= (others => '0');
-						
-					if fft_out_valid = '1' then
+					ch_in_valid <= (others => '0');	
+					
+					if fft_output.valid = '1' then
 
-						ch_in_real <= fft_out_real;
-						ch_in_imag <= fft_out_imag;
-						ch_in_valid(to_integer(fft_out_idx)) <= '1';
+						ch_in_real <= fft_output.real;
+						ch_in_imag <= fft_output.imag;
+						ch_in_valid(to_integer(fft_output.timeslot)) <= '1';
+
+					end if;
+
+					ch_in_bit_valid <= (others => '0');
+
+					if demod_output.valid = '1' then
+
+						ch_in_bit <= demod_output.bit;
+						ch_in_bit_valid(to_integer(demod_output.timeslot)) <= '1';
 
 					end if;
 					
@@ -284,6 +323,8 @@ begin
 				in_valid => 	ch_in_valid(0),
 				in_timestamp =>	rx_timestamp,
 
+				in_demod_seq => ch_in_bit,
+				in_demod_valid => ch_in_bit_valid(0),
 				in_cts => 		ch_in_cts(0),
 				out_rts =>		ch_out_rts(0),
 
@@ -298,21 +339,32 @@ begin
 			begin
 				if reset = '1' then
 
+					demod_input.real  <= (others => '0');
+					demod_input.imag  <= (others => '0');
+					demod_input.valid <= '0';
+					demod_input.timeslot <= (others => '0');
+
+					ch_in_bit <='0';
+					ch_in_bit_valid(0) <= '0';
+
 					ch_in_real  <= (others => '0');
 					ch_in_imag  <= (others => '0');
 					ch_in_valid <= (others => '0');
 
 				elsif rising_edge(clock) then
 
-					ch_in_valid <= (others => '0');
-					
-					if in_wb_valid = '1' then
+					demod_input.real  <= in_wb_real;
+					demod_input.imag  <= in_wb_imag;
+					demod_input.valid <= in_wb_valid;
+					demod_input.timeslot <= (others => '0');
 
-						ch_in_real  <= in_wb_real;
-						ch_in_imag  <= in_wb_imag;
-						ch_in_valid(0) <= '1';
-					
-					end if;
+					ch_in_bit <= demod_output.bit;
+					ch_in_bit_valid(0) <= demod_output.valid;
+
+					ch_in_real  <= in_wb_real;
+					ch_in_imag  <= in_wb_imag;
+					ch_in_valid(0) <= in_wb_valid;
+
 				end if;
 			end
 		process;
@@ -329,16 +381,11 @@ begin
 
 				elsif rising_edge(clock) then
 
-					out_valid <= '0';
 					ch_in_cts <= (others => '1');
 					
-					if ch_out_valid(0) = '1' then
-
-						out_real <= ch_out_real(0);
-						out_imag <= ch_out_imag(0);
-						out_valid <= '1';
-
-					end if;
+					out_real <= ch_out_real(0);
+					out_imag <= ch_out_imag(0);
+					out_valid <= ch_out_valid(0);
 					
 				end if;
 			end

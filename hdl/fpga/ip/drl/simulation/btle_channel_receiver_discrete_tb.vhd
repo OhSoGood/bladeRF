@@ -51,14 +51,18 @@ begin
 		iq_done => iq_complete
 	);
 
-    demod: entity work.btle_demod_matched port map(
+    demod: entity work.btle_demod_matched 
+	generic map( samples_per_bit => 2, max_channels => 16)
+    port map(
     	clock => clock,
     	reset => reset,
         in_real => iq_real,
         in_imag => iq_imag,
         in_valid => iq_valid,
+        in_fft_idx => to_unsigned(0, 5),
         out_bit => bits,
-        out_valid => bits_valid);
+        out_valid => bits_valid,
+        out_fft_idx => open);
 
    detect: entity work.btle_aa_detector 
    generic map(num_channels => 1, num_addresses => BTLE_MAXIMUM_AA_MEMORY)

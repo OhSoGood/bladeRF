@@ -65,7 +65,7 @@ begin
 					-- A new Access Address / Preamble has been supplied
 					-- -> Add to the circular list, overwriting the oldest
 					
-					memory(aa_insert_index) := in_preamble_aa;
+					addresses(aa_insert_index) := in_preamble_aa;
 					aa_insert_index := aa_insert_index + 1;
 
 					if aa_insert_index = num_addresses then

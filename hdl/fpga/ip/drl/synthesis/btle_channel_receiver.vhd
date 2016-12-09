@@ -26,6 +26,9 @@ entity btle_channel_receiver is
 		in_valid:       in std_logic;
 		in_timestamp:	in unsigned(63 downto 0);
 
+		in_demod_seq:	in std_logic;
+		in_demod_valid:	in std_logic;
+
 		in_cts:         in std_logic;
 		out_rts:        out std_logic;
 		
@@ -112,18 +115,6 @@ begin
 		out_rd_data		=>  iq_from_mem
 	);
 
-	demod: 
-	entity work.btle_demod_matched 
-	port map (
-    	clock => clock,
-    	reset => reset,
-        in_real => in_real,
-        in_imag => in_imag,
-        in_valid => in_valid,
-        out_bit => demod_out_seq,
-        out_valid => demod_out_valid
-  	);
-
    	detect: 
    	entity work.btle_aa_detector 
 
@@ -196,6 +187,30 @@ begin
 			end if;
 		end
 	process;
+
+
+	bits_in:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+
+				demod_out_seq <= '0';
+	 			demod_out_valid <= '0';
+	
+			elsif rising_edge(clock) then
+
+				demod_out_valid <= '0';
+				
+				if in_demod_valid = '1' then
+
+					demod_out_seq <= in_demod_seq;
+					demod_out_valid <= '1';
+
+				end if;
+			end if;
+		end
+	process;
+
 
 	memory_in: 
 	process(clock, reset) is

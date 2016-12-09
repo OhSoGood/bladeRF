@@ -26,6 +26,9 @@ architecture testbench of btle_channel_receiver_tb is
     signal in_imag: signed(15 downto 0) := to_signed(0, 16);
 	signal in_valid: std_logic := '0';
 
+	signal demod_out_bit: std_logic;
+	signal demod_out_bit_valid: std_logic;
+
 	signal out_rts: std_logic := '0';
 	signal out_detected: std_logic := '0';
     signal out_real: signed(15 downto 0) := to_signed(0, 16);
@@ -39,6 +42,21 @@ architecture testbench of btle_channel_receiver_tb is
 	
 begin
 
+	demod: 
+	entity work.btle_demod_matched 
+	generic map(samples_per_bit => 2, max_channels => 1) 
+	port map (
+    	clock => clock,
+    	reset => reset,
+        in_real => in_real,
+        in_imag => in_imag,
+        in_fft_idx => to_unsigned(0, 5),
+        in_valid => in_valid,
+        out_bit => demod_out_bit,
+        out_valid => demod_out_bit_valid,
+        out_fft_idx => open
+  	);
+
 	rx : entity work.btle_channel_receiver
 	generic map(samples_per_bit => 2)
 	port map(
@@ -49,6 +67,9 @@ begin
 		in_imag => in_imag,
 		in_valid => in_valid,
 		in_timestamp => (others => '0'),
+
+		in_demod_seq => demod_out_bit,
+		in_demod_valid => demod_out_bit_valid,
 
 		in_cts => '1',
 		out_rts => out_rts,

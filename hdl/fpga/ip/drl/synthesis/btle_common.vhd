@@ -8,6 +8,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package btle_common is
+
 	constant BTLE_SAMPLES_PER_SYMBOL : integer := 2;
 	constant BTLE_MAXIMUM_AA_MEMORY : integer := 5;
 
@@ -27,6 +28,34 @@ package btle_common is
 	constant BTLE_DEMOD_TAP_POSITION: integer := BTLE_SAMPLES_PER_SYMBOL * (BTLE_TRIGGER_LEN + BTLE_PREAMBLE_LEN + BTLE_AA_LEN);
 
 	function reverse_any_vector (a: in std_logic_vector) return std_logic_vector;
+
+	subtype sample_t is signed (15 downto 0);
+	subtype timeslot_t is unsigned (4 downto 0);
+
+	type iq_bus_t is record
+		real: 		sample_t;
+		imag: 		sample_t;
+		valid: 		std_logic;
+	end record;
+
+	type tdm_iq_bus_t is record
+		real: 		sample_t;
+		imag: 		sample_t;
+		valid: 		std_logic;
+		timeslot: 	timeslot_t;
+	end record;
+
+	type bit_bus_t is record
+		bit:		std_logic;
+		valid:		std_logic;
+	end record;
+
+	type tdm_bit_bus_t is record
+		bit:		std_logic;
+		valid:		std_logic;
+		timeslot:	timeslot_t;
+	end record;
+
 end;
 
 

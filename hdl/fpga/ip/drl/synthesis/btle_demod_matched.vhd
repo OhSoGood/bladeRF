@@ -10,7 +10,8 @@ use ieee.numeric_std.all;
 
 entity btle_demod_matched is
 	generic(
-		samples_per_bit : natural := 2
+		samples_per_bit : natural := 2;
+		max_channels : integer := 1
 	);
 	port(
 		clock:			in std_logic;
@@ -20,15 +21,21 @@ entity btle_demod_matched is
 		in_real:		in signed(15 downto 0);
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
+		in_fft_idx:		in unsigned(4 downto 0);
 
 		-- output bits
 		out_bit:		out std_logic := '0';
-		out_valid:		out std_logic := '0'
+		out_valid:		out std_logic := '0';
+		out_fft_idx:	out unsigned(4 downto 0)
 	);
 end btle_demod_matched;
 
 
 architecture rtl of btle_demod_matched is
+
+	type phase_array_t is array (0 to max_channels - 1) of natural range 0 to samples_per_bit - 1;
+	type signed17_array_t is array (0 to max_channels - 1) of signed(16 downto 0);
+
 
 	type filter_ref_type is record
 		f_upper_real: signed(7 downto 0);
@@ -52,29 +59,37 @@ architecture rtl of btle_demod_matched is
 	signal mul_upper_imag: signed(15 downto 0);
 	signal mul_valid : std_logic := '0';
 	signal mul_phase : natural range 0 to samples_per_bit - 1 := 0;
+	signal mul_idx : integer range 0 to max_channels - 1 := 0;
 
 	signal sum_lower_real : signed(15 downto 0);
 	signal sum_lower_imag : signed(15 downto 0);
 	signal sum_upper_real : signed(15 downto 0);
 	signal sum_upper_imag : signed(15 downto 0);
 	signal sum_valid : std_logic := '0';
+	signal sum_idx : integer range 0 to max_channels - 1 := 0;
 
 begin
 	multiply: 
 	process(clock, reset) is		
 
-		variable phase : natural range 0 to samples_per_bit - 1;
+		variable phase : phase_array_t;
 		variable mlr, mli, mur, mui : signed(19 downto 0);
+
+		variable this_idx : integer;
+		variable this_phase : integer;
+
 		variable scaled_in_real : signed(11 downto 0);
 		variable scaled_in_imag : signed(11 downto 0);
 
 		begin
 			if reset = '1' then
 
-				phase := 0;
+				for i in 0 to max_channels - 1 loop
+					phase(i) := 0;
+				end loop;
 				
 				mul_valid <= '0';
-				mul_phase <= phase;
+				mul_phase <= 0;
 				mul_lower_real <= (others => '0');
 				mul_lower_imag <= (others => '0');	
 				mul_upper_real <= (others => '0');
@@ -85,27 +100,31 @@ begin
 				mul_valid <= '0';
 
 				if in_valid = '1' then
-
+				
+					this_idx := to_integer(in_fft_idx);
+					this_phase := phase(this_idx);
+					
 					scaled_in_real := resize(in_real, 12);
 					scaled_in_imag := resize(in_imag, 12);
 				
-					mlr := scaled_in_real * FILTER_REF(phase).f_lower_real - scaled_in_imag * FILTER_REF(phase).f_lower_imag;
-					mli := scaled_in_real * FILTER_REF(phase).f_lower_imag + scaled_in_imag * FILTER_REF(phase).f_lower_real;
-					mur := scaled_in_real * FILTER_REF(phase).f_upper_real - scaled_in_imag * FILTER_REF(phase).f_upper_imag;
-					mui := scaled_in_real * FILTER_REF(phase).f_upper_imag + scaled_in_imag * FILTER_REF(phase).f_upper_real;
+					mlr := scaled_in_real * FILTER_REF(this_phase).f_lower_real - scaled_in_imag * FILTER_REF(this_phase).f_lower_imag;
+					mli := scaled_in_real * FILTER_REF(this_phase).f_lower_imag + scaled_in_imag * FILTER_REF(this_phase).f_lower_real;
+					mur := scaled_in_real * FILTER_REF(this_phase).f_upper_real - scaled_in_imag * FILTER_REF(this_phase).f_upper_imag;
+					mui := scaled_in_real * FILTER_REF(this_phase).f_upper_imag + scaled_in_imag * FILTER_REF(this_phase).f_upper_real;
 
 					mul_lower_real <= mlr(19 downto 4);
 					mul_lower_imag <= mli(19 downto 4);
 					mul_upper_real <= mur(19 downto 4);
 					mul_upper_imag <= mui(19 downto 4);
 
-					mul_phase <= phase;						
+					mul_phase <= this_phase;						
+					mul_idx <= this_idx;
 					mul_valid <= '1';
 
-					if phase = 0 then
-						phase := 1;
+					if this_phase = 0 then
+						phase(this_idx) := 1;
 					else
-						phase := 0;
+						phase(this_idx) := 0;
 					end if;
 
 				end if;
@@ -116,50 +135,66 @@ begin
 	accumulate:
 	process(clock, reset) is
 
-		variable slr : signed(16 downto 0);
-		variable sli : signed(16 downto 0);
-		variable sur : signed(16 downto 0);
-		variable sui : signed(16 downto 0);
-	
+		variable slr : signed17_array_t;
+		variable sli : signed17_array_t;
+		variable sur : signed17_array_t;
+		variable sui : signed17_array_t;
+
+		variable t_slr: signed(16 downto 0);
+		variable t_sli: signed(16 downto 0);
+		variable t_sur: signed(16 downto 0);
+		variable t_sui: signed(16 downto 0);
+		
 		begin
 			if reset = '1' then
 			
 				sum_valid <= '0';
+
 				sum_lower_real <= (others => '0');
 				sum_lower_imag <= (others => '0');	
 				sum_upper_real <= (others => '0');
 				sum_upper_imag <= (others => '0');
 
+				for i in 0 to max_channels - 1 loop
+				
+					slr(i) := (others => '0');
+					sli(i) := (others => '0');
+					sur(i) := (others => '0');
+					sui(i) := (others => '0');
+
+				end loop;
+
 			elsif rising_edge(clock) then
 
 				sum_valid <= '0';
+				sum_idx <= 0;
 
 				if mul_valid = '1' then
 
 					if mul_phase = 0 then
 					
-						slr := (others => '0');
-						sli := (others => '0');
-						sur := (others => '0');
-						sui := (others => '0');
+						slr(mul_idx) := resize(mul_lower_real, 17);
+						sli(mul_idx) := resize(mul_lower_imag, 17);
+						sur(mul_idx) := resize(mul_upper_real, 17);
+						sui(mul_idx) := resize(mul_upper_imag, 17);
 
-					end if;
+					elsif mul_phase = 1 then
 
-					slr := slr + mul_lower_real;
-					sli := sli + mul_lower_imag;
-					sur := sur + mul_upper_real;
-					sui := sui + mul_upper_imag;
+						t_slr := slr(mul_idx) + mul_lower_real;
+						t_sli := sli(mul_idx) + mul_lower_imag;
+						t_sur := sur(mul_idx) + mul_upper_real;
+						t_sui := sui(mul_idx) + mul_upper_imag;
 
-					if mul_phase = 1 then
-					
-						sum_lower_real <= slr (16 downto 1);
-						sum_lower_imag <= sli (16 downto 1);
-						sum_upper_real <= sur (16 downto 1);
-						sum_upper_imag <= sui (16 downto 1);
+						sum_lower_real <= t_slr (16 downto 1);
+						sum_lower_imag <= t_sli (16 downto 1);
+						sum_upper_real <= t_sur (16 downto 1);
+						sum_upper_imag <= t_sui (16 downto 1);
 
+						sum_idx <= mul_idx;
 						sum_valid <= '1';
-						
+
 					end if;
+
 				end if;
 			end if;
 		end
@@ -177,9 +212,11 @@ begin
 			
 				out_bit <= '0';
 				out_valid <= '0';
+				out_fft_idx <= to_unsigned(0, out_fft_idx'length);
 
 			elsif rising_edge(clock) then
 
+				out_fft_idx <= to_unsigned(0, out_fft_idx'length);
 				out_valid <= '0';
 				out_bit <= '0';
 
@@ -192,6 +229,7 @@ begin
 						out_bit <= '1';
 					end if;
 
+					out_fft_idx <= to_unsigned(sum_idx, out_fft_idx'length);
 					out_valid <= '1';
 				end if;
 			end if;
