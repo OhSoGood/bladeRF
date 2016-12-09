@@ -31,8 +31,10 @@ entity btle_channel_receiver is
 
 		in_cts:         in std_logic;
 		out_rts:        out std_logic;
+
+		in_preamble_aa:	 in std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+    	in_aa_detected:  in std_logic;
 		
-		out_detected:   buffer std_logic;
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
 		out_valid:      out std_logic
@@ -45,6 +47,7 @@ architecture rtl of btle_channel_receiver is
 	type ch_state_type is ( 
 							STATE_WAIT_DETECT, 
 							STATE_WAIT_CTS, 
+							STATE_TRIGGER_HEADER,
 							STATE_RX_HEADER,
 							STATE_RX_PAYLOAD,
 							STATE_START_REPORT,
@@ -79,8 +82,7 @@ architecture rtl of btle_channel_receiver is
 	signal demod_out_seq: std_logic := '0';
 	signal demod_out_valid: std_logic := '0';
 
-	signal preamble_aa:					std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-    signal aa_detected : 				std_logic := '0';
+	signal aa_preamble: 				std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 	signal aa_timestamp : 				unsigned (63 downto 0);
 
     signal dew_out_seq: std_logic := '0';
@@ -105,93 +107,64 @@ begin
 
 	iq_memory:
 	entity work.btle_dpram
-	port map(
-		clock			=> 	clock,
-		reset			=>	reset,	
-		in_wr_data		=> 	iq_to_mem,
-		in_wr_addr		=>	iq_to_mem_wr_addr,
-		in_wr_en		=>	iq_to_mem_valid,
-		in_rd_addr		=>	iq_from_mem_rd_addr,
-		out_rd_data		=>  iq_from_mem
-	);
-
-   	detect: 
-   	entity work.btle_aa_detector 
-	generic map(num_timeslots => 1, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
-   	port map (
-    	clock => clock,
-    	reset => reset,
-		in_seq => demod_out_seq,
-		in_valid => demod_out_valid,
-		in_timeslot => to_unsigned(0, timeslot_t'length),
-		in_preamble_aa => (others => '0'),
-		in_aa_valid => '0',
-		out_preamble_aa => preamble_aa,
-
-		out_seq => open,
-		out_valid => open,
-		out_timeslot => open,
-		
-		out_detected => aa_detected
-	);
+		port map (
+			clock			=> 	clock,
+			reset			=>	reset,	
+			in_wr_data		=> 	iq_to_mem,
+			in_wr_addr		=>	iq_to_mem_wr_addr,
+			in_wr_en		=>	iq_to_mem_valid,
+			in_rd_addr		=>	iq_from_mem_rd_addr,
+			out_rd_data		=>  iq_from_mem
+		);
 
 	dewhiten:
 	entity work.btle_dewhitener
-	generic map(channel => channel_index)
-	port map (
-		clock => clock,
-		reset => reset,
-		in_restart => soh,
-		in_seq => demod_out_seq,
-		in_valid => demod_out_valid,
-		out_seq => dew_out_seq,
-		out_valid => dew_out_valid
-	);
+		generic map (
+			channel => channel_index
+		)
+		port map (
+			clock => clock,
+			reset => reset,
+			in_restart => soh,
+			in_seq => demod_out_seq,
+			in_valid => demod_out_valid,
+			out_seq => dew_out_seq,
+			out_valid => dew_out_valid
+		);
 
 	hdr_decode:
 	entity work.btle_adv_header
-	port map(
-		clock			=>	clock,
-		reset			=>	reset,
-		in_soh		=>	soh,
-		in_seq			=>	dew_out_seq,
-		in_valid		=>	dew_out_valid,
-		out_decoded		=>	header_decoded,
-		out_valid		=>	header_valid,
-		out_bits        =>  header_bits,
-		out_pdu_type	=>  header_pdu_type,	-- out unsigned (3 downto 0);
-		out_length		=>	header_length,		--out unsigned (5 downto 0);
-		out_tx_addr		=>  header_tx_addr, 	
-		out_rx_addr		=>	header_rx_addr
-	);
+		port map (
+			clock			=>	clock,
+			reset			=>	reset,
+			in_soh		=>	soh,
+			in_seq			=>	dew_out_seq,
+			in_valid		=>	dew_out_valid,
+			out_decoded		=>	header_decoded,
+			out_valid		=>	header_valid,
+			out_bits        =>  header_bits,
+			out_pdu_type	=>  header_pdu_type,	-- out unsigned (3 downto 0);
+			out_length		=>	header_length,		--out unsigned (5 downto 0);
+			out_tx_addr		=>  header_tx_addr, 	
+			out_rx_addr		=>	header_rx_addr
+		);
 
 
-	crc_calc:	entity work.btle_crc
-	port map(
-		clock			=>	clock,
-		reset			=>	reset,
-		in_soh			=>	soh,
-		in_sop			=>	sop,
-		in_payload_len	=>	header_length,
-		in_seq			=> 	dew_out_seq,
-		in_valid		=>	dew_out_valid,
-		out_crc			=>	crc_result,
-		out_decoded		=>	crc_decoded,
-		out_valid		=>	crc_valid
-	);
+	crc_calc:
+	entity work.btle_crc
+		port map(
+			clock			=>	clock,
+			reset			=>	reset,
+			in_soh			=>	soh,
+			in_sop			=>	sop,
+			in_payload_len	=>	header_length,
+			in_seq			=> 	dew_out_seq,
+			in_valid		=>	dew_out_valid,
+			out_crc			=>	crc_result,
+			out_decoded		=>	crc_decoded,
+			out_valid		=>	crc_valid
+		);
 	
-
-	detector:
-	process(clock, reset)
-		begin
-			if reset = '1' then
-				out_detected <= '0';
-			elsif rising_edge(clock) then
-				out_detected <= aa_detected;
-			end if;
-		end
-	process;
-
 
 	bits_in:
 	process(clock, reset) is
@@ -256,6 +229,9 @@ begin
 		begin
 
 			if reset = '1' then
+
+				aa_preamble <= (others => '0');
+				aa_timestamp <= (others => '0');
 			
 				out_rts <= '0';
 				out_real <= (others => '0');
@@ -281,19 +257,31 @@ begin
 				
 					when STATE_WAIT_DETECT =>
 
-						if aa_detected = '1' then
+						if in_aa_detected = '1' then
 
 							-- Save the timetamp and the 'read' buffer position when the AA was detected
 							-- so that symbols (including some pretrigger) can be reported
-							
+
+							aa_preamble <= in_preamble_aa;
 							aa_timestamp <= in_timestamp;
 							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
-							soh <= '1';
 
+							-- This is the last bit of the Access Address, so wait for the next bit before
+							-- starting to receive the header
+							
+							state <= STATE_TRIGGER_HEADER;
+
+						end if;
+
+					when STATE_TRIGGER_HEADER =>
+
+						if in_demod_valid = '1' then
+
+							soh <= '1';
 							state <= STATE_RX_HEADER;
 
 						end if;
-						
+							
 					when STATE_RX_HEADER =>
 
 						if header_decoded = '1' then
@@ -456,7 +444,7 @@ begin
 						if in_cts = '1' then
 
 							out_imag <= (others => '0');
-							out_real <= "00000000" & signed(preamble_aa(39 downto 32));
+							out_real <= "00000000" & signed(aa_preamble(39 downto 32));
 							out_valid <= '1';
  							total_count := total_count + 1;
 
@@ -469,8 +457,8 @@ begin
 
 						if in_cts = '1' then
 
-							out_imag <= signed(preamble_aa(31 downto 16));
-							out_real <= signed(preamble_aa(15 downto 0));
+							out_imag <= signed(aa_preamble(31 downto 16));
+							out_real <= signed(aa_preamble(15 downto 0));
 							out_valid <= '1';
  							total_count := total_count + 1;
 
