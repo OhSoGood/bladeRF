@@ -32,7 +32,7 @@ entity btle_channel_receiver is
 		in_cts:         in std_logic;
 		out_rts:        out std_logic;
 
-		in_preamble_aa:	 in std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+		in_preamble_aa:	 in preamble_aa_t;
     	in_aa_detected:  in std_logic;
 		
 		out_real:		out signed(15 downto 0);
@@ -82,7 +82,7 @@ architecture rtl of btle_channel_receiver is
 	signal demod_out_seq: std_logic := '0';
 	signal demod_out_valid: std_logic := '0';
 
-	signal aa_preamble: 				std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+	signal aa_preamble: 				preamble_aa_t;
 	signal aa_timestamp : 				unsigned (63 downto 0);
 
     signal dew_out_seq: std_logic := '0';

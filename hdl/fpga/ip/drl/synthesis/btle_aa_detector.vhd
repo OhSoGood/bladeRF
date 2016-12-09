@@ -9,26 +9,19 @@ use ieee.numeric_std.all;
 use work.btle_common.all;
 
 entity btle_aa_detector is
-	generic(
+	generic (
 		num_timeslots : integer := 1;
 		num_addresses : integer := 1
 	);
-	port(
+	port (
 		clock:				in std_logic;
 		reset:				in std_logic;
-		in_seq:				in std_logic;
-		in_valid:			in std_logic;
-		in_timeslot:		in timeslot_t;
 
-		in_preamble_aa:		in std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-		in_aa_valid:		in std_logic;
+		in_seq:				in tdm_bit_bus_t;
+		in_cfg:				in aa_config_t;
 
-		out_seq:			out std_logic;
-		out_valid:			out std_logic;
-		out_timeslot:		out timeslot_t;
-		
-		out_preamble_aa:	out std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-		out_detected:		out std_logic
+		out_seq:			out tdm_bit_bus_t;
+		out_detect_results:	out aa_detect_results_t
 	);
 end btle_aa_detector;
 
@@ -38,8 +31,8 @@ begin
 	aa_detector:
 	process(clock, reset) is
 
-		type ch_memory_array_type is array(num_timeslots - 1 downto 0) of std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-		type aa_array_type is array(num_addresses - 1 downto 0) of std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+		type ch_memory_array_type is array(num_timeslots - 1 downto 0) of preamble_aa_t;
+		type aa_array_type is array(num_addresses - 1 downto 0) of preamble_aa_t;
 
 		variable memory: ch_memory_array_type;
 		variable addresses : aa_array_type;
@@ -56,22 +49,22 @@ begin
 					addresses(addr_index) := BTLE_BED6;
 				end loop;
 
-				--addresses(0) := BTLE_BED6;
 				aa_insert_index := 0;
-				
-				out_preamble_aa <= (others => '0');
-				out_detected <= '0';
-				
+
+				out_detect_results.detected <= '0';
+				out_detect_results.preamble_aa <= (others => '0');
+
 			elsif rising_edge(clock) then
 
-				out_detected <= '0';
+				out_detect_results.detected <= '0';
+				out_detect_results.preamble_aa <= (others => '0');
 
-				if in_aa_valid = '1' then
+				if in_cfg.valid = '1' then
 
 					-- A new Access Address / Preamble has been supplied
 					-- -> Add to the circular list, overwriting the oldest
 					
-					addresses(aa_insert_index) := in_preamble_aa;
+					addresses(aa_insert_index) := in_cfg.preamble_aa;
 					aa_insert_index := aa_insert_index + 1;
 
 					if aa_insert_index = num_addresses then
@@ -82,37 +75,31 @@ begin
 
 				end if;
 
-
-				out_seq <= '0';
-				out_valid <= '0';
-				out_timeslot <= (others => '0');
-				
-				
-				if in_valid = '1' then
+			
+				if in_seq.valid = '1' then
 	
 					-- > Shift memory
 					-- > Add new bit
 					-- > Check correlation
 
-					memory(to_integer(in_timeslot)) := memory(to_integer(in_timeslot))(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_seq;
+					memory(to_integer(in_seq.timeslot)) := memory(to_integer(in_seq.timeslot))(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_seq.seq;
 
 					for addr_index in 0 to num_addresses - 1 loop
 
-						if memory(to_integer(in_timeslot)) = addresses(addr_index) then
+						if memory(to_integer(in_seq.timeslot)) = addresses(addr_index) then
 					
-							out_preamble_aa <= addresses(addr_index);
-							out_detected <= '1';
+							out_detect_results.preamble_aa <= addresses(addr_index);
+							out_detect_results.detected <= '1';
 							exit;
 
 						end if;
 						
 					end loop;
-
-					out_seq <= in_seq;
-					out_valid <= '1';
-					out_timeslot <= in_timeslot;
 					
 				end if;
+
+				out_seq <= in_seq;
+
 			end if;
 		end
 	process;

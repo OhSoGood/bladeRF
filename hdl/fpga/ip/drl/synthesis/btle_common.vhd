@@ -21,7 +21,9 @@ package btle_common is
 	constant BTLE_MAX_PAYLOAD_LEN: integer := (37 * 8);
 	constant BTLE_CRC_LEN: integer := 24;
 
-	constant BTLE_BED6 : std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0) := "0101010101101011011111011001000101110001";
+	subtype preamble_aa_t is std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+	
+	constant BTLE_BED6 : preamble_aa_t := "0101010101101011011111011001000101110001";
 
 	--Samples
 	constant BTLE_MEMORY_LEN: integer := BTLE_SAMPLES_PER_SYMBOL * (BTLE_TRIGGER_LEN + BTLE_PREAMBLE_LEN + BTLE_AA_LEN + BTLE_HEADER_LEN + BTLE_MAX_PAYLOAD_LEN + BTLE_CRC_LEN + BTLE_TRIGGER_LEN);	
@@ -29,8 +31,10 @@ package btle_common is
 
 	function reverse_any_vector (a: in std_logic_vector) return std_logic_vector;
 
+	-- Basic types
 	subtype sample_t is signed (15 downto 0);
 	subtype timeslot_t is unsigned (4 downto 0);
+
 
 	type iq_bus_t is record
 		real: 		sample_t;
@@ -54,6 +58,16 @@ package btle_common is
 		seq:		std_logic;
 		valid:		std_logic;
 		timeslot:	timeslot_t;
+	end record;
+
+	type aa_detect_results_t is record
+		detected: 			std_logic;
+		preamble_aa:		preamble_aa_t;
+	end record;
+
+	type aa_config_t is record
+		valid: 			std_logic;
+		preamble_aa:	preamble_aa_t;
 	end record;
 
 end;

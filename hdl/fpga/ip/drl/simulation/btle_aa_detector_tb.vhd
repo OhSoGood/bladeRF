@@ -25,35 +25,25 @@ architecture testbench of btle_aa_detector_tb is
 
     signal clock: std_logic := '0';
     signal reset: std_logic := '0';
-
-    signal bits: std_logic := '0';
-	signal bits_valid: std_logic := '0';
-
-    signal detect_result: std_logic := '0';
-	signal preamble_aa: std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-
-	signal output_seq : std_logic;
-	signal output_valid : std_logic;
-	signal output_timeslot : timeslot_t;
+    
+	signal aa_cfg: aa_config_t;
+	signal input_seq: tdm_bit_bus_t;
+    signal aa_detect_results: aa_detect_results_t;
+	signal output_seq: tdm_bit_bus_t;
 	
 begin
     duv: entity work.btle_aa_detector 
 	generic map(num_timeslots => 16, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
-    port map(
+    port map (
     	clock => clock,
     	reset => reset,
-        in_seq => bits,
-        in_valid => bits_valid,
-        in_timeslot => to_unsigned(15, timeslot_t'length),
-        in_preamble_aa => (others => '0'),
-        in_aa_valid => '0',
-        out_detected => detect_result,
 
+        in_seq => input_seq,
+		in_cfg => aa_cfg,
+        
 		out_seq => output_seq,
-		out_valid => output_valid,
-		out_timeslot => output_timeslot,
-
-        out_preamble_aa => preamble_aa);
+		out_detect_results => aa_detect_results
+    );
 
     clock <= not clock after 500 ns;
     reset <= '1', '0' after 20 ns;
@@ -67,8 +57,12 @@ begin
 
 			RV.InitSeed(RV'instance_name);
 
-			bits <= '0';
-			bits_valid <= '0'; 
+			aa_cfg.valid <= '0';
+			aa_cfg.preamble_aa <= (others => '0');
+
+			input_seq.seq <= '0';
+			input_seq.valid <= '0';
+			input_seq.timeslot <= to_unsigned(15, timeslot_t'length);
 			
 		   	wait until not reset;
 			wait until rising_edge(clock);
@@ -82,10 +76,10 @@ begin
 			for i in 0 to random_iter loop
 				wait until rising_edge(clock);
 				
-				bits <= RV.RandSlv(0, 1, 1)(0); 
-				bits_valid <= '1';
+				input_seq.seq <= RV.RandSlv(0, 1, 1)(0); 
+				input_seq.valid <= '1';
 
-				assert detect_result = '0' report "False detect!" severity failure;
+				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
 			end loop;
 
 			-- Send the real Advertising Access Address + Preamble
@@ -95,17 +89,17 @@ begin
 			for i in BTLE_BED6'range loop
 				wait until rising_edge(clock);
 
-				bits <= BTLE_BED6(i);
-				bits_valid <= '1';
+				input_seq.seq <= BTLE_BED6(i);
+				input_seq.valid <= '1';
 
-				assert detect_result = '0' report "False detect!" severity failure;
+				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
 			end loop;
 
 			wait until rising_edge(clock);	-- clock in the final bit of the real AA
 			wait until rising_edge(clock);	-- clock out the result
 
-			assert detect_result = '1' report "Missed detection!" severity failure;
-			assert preamble_aa = "0101010101101011011111011001000101110001" report "Incorrect Preamble/AA" severity failure;
+			assert aa_detect_results.detected = '1' report "Missed detection!" severity failure;
+			assert aa_detect_results.preamble_aa = "0101010101101011011111011001000101110001" report "Incorrect Preamble/AA" severity failure;
 
 			report("...BED6 detected!");
 			
@@ -116,14 +110,14 @@ begin
 			for i in 0 to random_iter loop
 				wait until rising_edge(clock);
 				
-				bits <= RV.RandSlv(0, 1, 1)(0); 
-				bits_valid <= '1';
+				input_seq.seq <= RV.RandSlv(0, 1, 1)(0); 
+				input_seq.valid <= '1';
 
-				assert detect_result = '0' report "False detect!" severity failure;
+				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
 			end loop;
 
 			wait until rising_edge(clock);
-			bits_valid <= '0';
+			input_seq.valid <= '0';
 	
         	report("End of testbench. All tests passed.");
         	test_runner_cleanup(runner);

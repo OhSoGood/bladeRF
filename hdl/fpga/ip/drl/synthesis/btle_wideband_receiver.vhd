@@ -35,6 +35,8 @@ end btle_wideband_receiver;
 
 architecture rtl of btle_wideband_receiver is
 
+	type bus_array is array(num_channels - 1 downto 0) of sample_t;
+	
 	type ch_array_type is array (0 to 15) OF integer;
 	constant ch_idx_array : ch_array_type := (5, 6, 7, 8, 9, 10, 38, 40, 40, 40, 37, 0, 1, 2, 3, 4 );
 
@@ -49,17 +51,13 @@ architecture rtl of btle_wideband_receiver is
 	signal demod_output: tdm_bit_bus_t;
 	signal aa_input: tdm_bit_bus_t;
 	signal aa_output: tdm_bit_bus_t;
-
-	type bus_array is array(num_channels - 1 downto 0) of sample_t;
-
-	signal aa_detected:			std_logic;
-	signal preamble_aa:			std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+	signal aa_detect_results: aa_detect_results_t;
 
 
 	signal ch_in_bit:			std_logic;
 	signal ch_in_bit_valid:		std_logic_vector(num_channels - 1 downto 0);
 	signal ch_in_aa_detected:	std_logic_vector(num_channels - 1 downto 0);
-	signal ch_in_preamble_aa:	std_logic_vector(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+	signal ch_in_preamble_aa:	preamble_aa_t;
 
 
 	signal ch_in_real: 			sample_t;
@@ -130,19 +128,13 @@ begin
     		clock => clock,
     		reset => reset,
     	
-			in_seq => aa_input.seq,
-			in_valid => aa_input.valid,
-			in_timeslot => aa_input.timeslot,
+			in_seq => aa_input,
 
-			in_preamble_aa => (others => '0'),
-			in_aa_valid => '0',
+			in_cfg.valid => '0',
+			in_cfg.preamble_aa => (others => '0'),
 
-			out_seq => aa_output.seq,
-			out_valid => aa_output.valid,
-			out_timeslot => aa_output.timeslot,
-
-			out_preamble_aa => preamble_aa,
-			out_detected => aa_detected
+			out_seq => aa_output,
+			out_detect_results => aa_detect_results
 		);
 
 
@@ -295,10 +287,10 @@ begin
 						ch_in_bit <= aa_output.seq;
 						ch_in_bit_valid(to_integer(aa_output.timeslot)) <= '1';
 
-						if aa_detected = '1' then
+						if aa_detect_results.detected = '1' then
 
 							ch_in_aa_detected(to_integer(aa_output.timeslot)) <= '1';
-							ch_in_preamble_aa <= preamble_aa;
+							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
 							
 						end if;
 
@@ -402,7 +394,7 @@ begin
 				in_cts => 		ch_in_cts(0),
 				out_rts =>		ch_out_rts(0),
 
-				in_preamble_aa =>	preamble_aa,
+				in_preamble_aa =>	aa_detect_results.preamble_aa,
 				in_aa_detected =>   ch_in_aa_detected(0),
 
 				out_real => 	ch_out_real(0),
@@ -483,10 +475,10 @@ begin
 						ch_in_bit <= aa_output.seq;
 						ch_in_bit_valid(to_integer(aa_output.timeslot)) <= '1';
 
-						if aa_detected = '1' then
+						if aa_detect_results.detected = '1' then
 
 							ch_in_aa_detected(to_integer(demod_output.timeslot)) <= '1';
-							ch_in_preamble_aa <= preamble_aa;
+							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
 							
 						end if;
 
@@ -531,7 +523,7 @@ begin
 
 			elsif rising_edge(clock) then
 
-				out_detected <= aa_detected;
+				out_detected <= aa_detect_results.detected;
 
 			end if;
 		end
