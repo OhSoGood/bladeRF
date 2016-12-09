@@ -117,17 +117,21 @@ begin
 
    	detect: 
    	entity work.btle_aa_detector 
-
-	generic map(num_channels => 1, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
+	generic map(num_timeslots => 1, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
    	port map (
     	clock => clock,
     	reset => reset,
 		in_seq => demod_out_seq,
 		in_valid => demod_out_valid,
-		in_ch_index => 0,
+		in_timeslot => to_unsigned(0, timeslot_t'length),
 		in_preamble_aa => (others => '0'),
 		in_aa_valid => '0',
 		out_preamble_aa => preamble_aa,
+
+		out_seq => open,
+		out_valid => open,
+		out_timeslot => open,
+		
 		out_detected => aa_detected
 	);
 

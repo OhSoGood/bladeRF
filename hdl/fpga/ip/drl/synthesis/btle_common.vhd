@@ -46,12 +46,12 @@ package btle_common is
 	end record;
 
 	type bit_bus_t is record
-		bit:		std_logic;
+		seq:		std_logic;
 		valid:		std_logic;
 	end record;
 
 	type tdm_bit_bus_t is record
-		bit:		std_logic;
+		seq:		std_logic;
 		valid:		std_logic;
 		timeslot:	timeslot_t;
 	end record;

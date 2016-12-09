@@ -106,7 +106,7 @@ begin
         	in_imag 	=> demod_input.imag,
 			in_valid 	=> demod_input.valid,
         	in_fft_idx 	=> demod_input.timeslot,
-        	out_bit 	=> demod_output.bit,
+        	out_bit 	=> demod_output.seq,
         	out_valid 	=> demod_output.valid,
         	out_fft_idx => demod_output.timeslot
   		);
@@ -226,7 +226,7 @@ begin
 
 					if demod_output.valid = '1' then
 
-						ch_in_bit <= demod_output.bit;
+						ch_in_bit <= demod_output.seq;
 						ch_in_bit_valid(to_integer(demod_output.timeslot)) <= '1';
 
 					end if;
@@ -358,7 +358,7 @@ begin
 					demod_input.valid <= in_wb_valid;
 					demod_input.timeslot <= (others => '0');
 
-					ch_in_bit <= demod_output.bit;
+					ch_in_bit <= demod_output.seq;
 					ch_in_bit_valid(0) <= demod_output.valid;
 
 					ch_in_real  <= in_wb_real;

@@ -32,19 +32,27 @@ architecture testbench of btle_aa_detector_tb is
     signal detect_result: std_logic := '0';
 	signal preamble_aa: std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 
+	signal output_seq : std_logic;
+	signal output_valid : std_logic;
+	signal output_timeslot : timeslot_t;
 	
 begin
     duv: entity work.btle_aa_detector 
-	generic map(num_channels => 16, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
+	generic map(num_timeslots => 16, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
     port map(
     	clock => clock,
     	reset => reset,
         in_seq => bits,
         in_valid => bits_valid,
-        in_ch_index => 0,
+        in_timeslot => to_unsigned(15, timeslot_t'length),
         in_preamble_aa => (others => '0'),
         in_aa_valid => '0',
         out_detected => detect_result,
+
+		out_seq => output_seq,
+		out_valid => output_valid,
+		out_timeslot => output_timeslot,
+
         out_preamble_aa => preamble_aa);
 
     clock <= not clock after 500 ns;

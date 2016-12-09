@@ -10,17 +10,23 @@ use work.btle_common.all;
 
 entity btle_aa_detector is
 	generic(
-		num_channels : integer := 1;
+		num_timeslots : integer := 1;
 		num_addresses : integer := 1
 	);
 	port(
 		clock:				in std_logic;
 		reset:				in std_logic;
 		in_seq:				in std_logic;
-		in_valid:       	in std_logic;
-		in_ch_index:		in integer range num_channels - 1 downto 0;
+		in_valid:			in std_logic;
+		in_timeslot:		in timeslot_t;
+
 		in_preamble_aa:		in std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 		in_aa_valid:		in std_logic;
+
+		out_seq:			out std_logic;
+		out_valid:			out std_logic;
+		out_timeslot:		out timeslot_t;
+		
 		out_preamble_aa:	out std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 		out_detected:		out std_logic
 	);
@@ -32,7 +38,7 @@ begin
 	aa_detector:
 	process(clock, reset) is
 
-		type ch_memory_array_type is array(num_channels - 1 downto 0) of std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
+		type ch_memory_array_type is array(num_timeslots - 1 downto 0) of std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 		type aa_array_type is array(num_addresses - 1 downto 0) of std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
 
 		variable memory: ch_memory_array_type;
@@ -42,8 +48,8 @@ begin
 		begin
 			if reset = '1' then
 
-				for ch_index in 0 to num_channels - 1 loop
-					memory(ch_index) := (others => '0');
+				for ts in 0 to num_timeslots - 1 loop
+					memory(ts) := (others => '0');
 				end loop;
 
 				for addr_index in 0 to num_addresses - 1 loop
@@ -76,6 +82,11 @@ begin
 
 				end if;
 
+
+				out_seq <= '0';
+				out_valid <= '0';
+				out_timeslot <= (others => '0');
+				
 				
 				if in_valid = '1' then
 	
@@ -83,11 +94,11 @@ begin
 					-- > Add new bit
 					-- > Check correlation
 
-					memory(in_ch_index) := memory(in_ch_index)(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_seq;
+					memory(to_integer(in_timeslot)) := memory(to_integer(in_timeslot))(BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 2 downto 0) & in_seq;
 
 					for addr_index in 0 to num_addresses - 1 loop
 
-						if memory(in_ch_index) = addresses(addr_index) then
+						if memory(to_integer(in_timeslot)) = addresses(addr_index) then
 					
 							out_preamble_aa <= addresses(addr_index);
 							out_detected <= '1';
@@ -96,6 +107,11 @@ begin
 						end if;
 						
 					end loop;
+
+					out_seq <= in_seq;
+					out_valid <= '1';
+					out_timeslot <= in_timeslot;
+					
 				end if;
 			end if;
 		end
