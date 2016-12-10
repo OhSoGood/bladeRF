@@ -56,6 +56,10 @@ begin
 
 			elsif rising_edge(clock) then
 
+				out_seq.seq <= '0';
+				out_seq.valid <= '0';
+				out_seq.timeslot <= (others => '0');
+
 				out_detect_results.detected <= '0';
 				out_detect_results.preamble_aa <= (others => '0');
 
@@ -95,10 +99,10 @@ begin
 						end if;
 						
 					end loop;
+
+					out_seq <= in_seq;
 					
 				end if;
-
-				out_seq <= in_seq;
 
 			end if;
 		end
