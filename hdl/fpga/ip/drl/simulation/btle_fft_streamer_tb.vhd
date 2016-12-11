@@ -24,11 +24,8 @@ architecture testbench of btle_fft_streamer_tb is
 
 	signal clock: std_logic := '0';
 	signal reset: std_logic := '0';
-	
-	signal in_imag : signed (15 downto 0) := (others => '0');
-	signal in_real : signed (15 downto 0) := (others => '0');	
-	signal in_valid: std_logic := '0';
 
+	signal in_iq_bus: iq_bus_t;
 	signal out_iq_bus: tdm_iq_bus_t;
 	
 begin
@@ -40,9 +37,9 @@ begin
 		clock => clock,
 		reset => reset,
 		enable => iq_enable,
-		iq_real => in_real,
-		iq_imag => in_imag,
-		iq_valid => in_valid,
+		iq_real => in_iq_bus.real,
+		iq_imag => in_iq_bus.imag,
+		iq_valid => in_iq_bus.valid,
 		iq_done => iq_done
 	);
 
@@ -52,10 +49,7 @@ begin
 		clock => clock,
 		reset => reset,
 		enable => '1',
-		in_real => in_real,
-		in_imag => in_imag,
-		in_valid => in_valid,
-
+		in_iq_bus => in_iq_bus,
 		out_iq_bus => out_iq_bus
 	);
 

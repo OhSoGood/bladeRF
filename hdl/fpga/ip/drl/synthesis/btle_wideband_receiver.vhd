@@ -181,11 +181,7 @@ begin
 			clock 			=> clock,
 			reset 			=> reset,
 			enable			=> enable,
-
-			in_real  		=> wideband_input.real,
-			in_imag	   		=> wideband_input.imag,
-			in_valid       	=> wideband_input.valid,
-			
+			in_iq_bus 		=> wideband_input,
 			out_iq_bus		=> fft_output
     	);
 

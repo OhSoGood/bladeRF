@@ -14,11 +14,7 @@ entity btle_fft_streamer is
 		clock:			in std_logic;
 		reset:			in std_logic;
 		enable:			in std_logic;
-
-		in_real:		in signed(15 downto 0);
-		in_imag:		in signed(15 downto 0);
-		in_valid:       in std_logic;
-
+		in_iq_bus:		in iq_bus_t;
 		out_iq_bus:		out tdm_iq_bus_t
 	);
 end btle_fft_streamer;
@@ -162,7 +158,7 @@ begin
 				sink_sop <= '0';
 				sink_eop <= '0';
 			
-				if sink_ready = '1' and in_valid = '1' then
+				if sink_ready = '1' and in_iq_bus.valid = '1' then
 
 					if in_phase = 0 then
 						sink_sop <= '1';
@@ -171,8 +167,8 @@ begin
 					end if;
 
 					sink_valid <= '1';
-					sink_real <= in_real;
-					sink_imag <= in_imag;
+					sink_real <= in_iq_bus.real;
+					sink_imag <= in_iq_bus.imag;
 
 					in_phase := in_phase + 1;
 
