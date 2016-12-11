@@ -37,9 +37,7 @@ begin
 		clock => clock,
 		reset => reset,
 		enable => iq_enable,
-		iq_real => in_iq_bus.real,
-		iq_imag => in_iq_bus.imag,
-		iq_valid => in_iq_bus.valid,
+		out_iq_bus => in_iq_bus,
 		iq_done => iq_done
 	);
 

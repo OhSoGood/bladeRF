@@ -8,6 +8,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 use work.btle_complex.all;
+use work.btle_common.all;
 
 entity btle_demod_matched_tb is
 	generic(runner_cfg: string);
@@ -24,9 +25,7 @@ architecture testbench of btle_demod_matched_tb is
     signal reset: std_logic := '0';
 
 	signal iq_enable : std_logic := '0';
-    signal iq_real: signed(15 downto 0) := to_signed(0, 16);
-    signal iq_imag: signed(15 downto 0) := to_signed(0, 16);
-	signal iq_valid: std_logic := '0';
+	signal iq_bus: iq_bus_t;
 	signal iq_complete : std_logic := '0';
 
     signal out_bit: std_logic := '0';
@@ -38,9 +37,9 @@ begin
     port map(
     	clock => clock,
     	reset => reset,
-        in_real => iq_real,
-        in_imag => iq_imag,
-        in_valid => iq_valid,
+        in_real => iq_bus.real,
+        in_imag => iq_bus.imag,
+        in_valid => iq_bus.valid,
         in_fft_idx => to_unsigned(5, 5),
         out_bit => out_bit,
         out_valid => out_valid,
@@ -53,9 +52,7 @@ begin
 		clock => clock,
 		reset => reset,
 		enable => iq_enable,
-		iq_real => iq_real,
-		iq_imag => iq_imag,
-		iq_valid => iq_valid,
+		out_iq_bus => iq_bus,
 		iq_done => iq_complete
 	);
 

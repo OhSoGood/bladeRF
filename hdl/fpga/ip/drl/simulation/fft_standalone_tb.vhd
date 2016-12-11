@@ -7,7 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
-
+use work.btle_common.all;
 use work.btle_iq_streamer;
 
 entity fft_standalone_tb is
@@ -30,12 +30,11 @@ architecture testbench of fft_standalone_tb is
 	signal inverse: std_logic_vector(0 downto 0) := (others => '0');
 	signal sink_eop: std_logic := '0';
 
+	signal sink_iq_bus: iq_bus_t;
+
 	signal sink_error: std_logic_vector (1 downto 0) := (others => '0');
-	signal sink_imag : signed (15 downto 0) := (others => '0');
 	signal sink_ready: std_logic := '0';
-	signal sink_real : signed (15 downto 0) := (others => '0');	
 	signal sink_sop: std_logic := '0';
-	signal sink_valid: std_logic := '0';
 	signal source_eop: std_logic := '0';
 	signal source_error: std_logic_vector (1 downto 0) := (others => '0');
 	signal source_imag:  signed (15 downto 0) := (others => '0');
@@ -78,9 +77,7 @@ begin
 		clock => clk,
 		reset => reset,
 		enable => iq_enable,
-		iq_real => sink_real,
-		iq_imag => sink_imag,
-		iq_valid => sink_valid,
+		out_iq_bus => sink_iq_bus,
 		iq_done => open
 	);
 
@@ -88,13 +85,13 @@ begin
 		port map (
 			clk          => clk,          --    clk.clk
 			reset_n      => not reset,      --    rst.reset_n
-			sink_valid   => sink_valid,   --   sink.sink_valid
+			sink_valid   => sink_iq_bus.valid,   --   sink.sink_valid
 			sink_ready   => sink_ready,   --       .sink_ready
 			sink_error   => sink_error,   --       .sink_error
 			sink_sop     => sink_sop,     --       .sink_sop
 			sink_eop     => sink_eop,     --       .sink_eop
-			sink_real    => sink_real,    --       .sink_real
-			sink_imag    => sink_imag,    --       .sink_imag
+			sink_real    => sink_iq_bus.real,    --       .sink_real
+			sink_imag    => sink_iq_bus.imag,    --       .sink_imag
 			fftpts_in    => fftpts_in,    --       .fftpts_in
 			inverse      => inverse,      --       .inverse
 			source_valid => source_valid, -- source.source_valid

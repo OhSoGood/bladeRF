@@ -8,6 +8,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
+use work.btle_common.all;
 
 entity btle_wideband_receiver_2_tb is
 	generic(runner_cfg: string);
@@ -22,9 +23,7 @@ architecture testbench of btle_wideband_receiver_2_tb is
     signal clock: std_logic := '0';
     signal reset: std_logic := '0';
 
-    signal in_real: signed(15 downto 0) := to_signed(0, 16);
-    signal in_imag: signed(15 downto 0) := to_signed(0, 16);
-	signal in_valid: std_logic := '0';
+	signal in_iq_bus: iq_bus_t;
 
 	signal out_detected: std_logic := '0';
     signal out_real: signed(15 downto 0) := to_signed(0, 16);
@@ -45,9 +44,9 @@ begin
 		reset => reset,
 		enable => '1',
 
-		in_wb_real => in_real,
-		in_wb_imag => in_imag,
-		in_wb_valid => in_valid,
+		in_wb_real => in_iq_bus.real,
+		in_wb_imag => in_iq_bus.imag,
+		in_wb_valid => in_iq_bus.valid,
 		in_timestamp => (others => '0'),
 
 		out_real => out_real,
@@ -62,9 +61,7 @@ begin
 		clock => clock,
 		reset => reset,
 		enable => iq_enable,
-		iq_real => in_real,
-		iq_imag => in_imag,
-		iq_valid => in_valid,
+		out_iq_bus => in_iq_bus,
 		iq_done => iq_complete
 	);
 
