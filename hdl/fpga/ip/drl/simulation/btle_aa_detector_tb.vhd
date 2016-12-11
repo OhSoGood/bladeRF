@@ -25,23 +25,29 @@ architecture testbench of btle_aa_detector_tb is
 
     signal clock: std_logic := '0';
     signal reset: std_logic := '0';
-    
+
+    signal input_seq: tdm_bit_bus_t;
+    signal input_ch_info: btle_ch_info_t;
 	signal aa_cfg: aa_config_t;
-	signal input_seq: tdm_bit_bus_t;
-    signal aa_detect_results: aa_detect_results_t;
+
+    signal output_ch_info: btle_ch_info_t;
 	signal output_seq: tdm_bit_bus_t;
+    signal aa_detect_results: aa_detect_results_t;
+
 	
 begin
     duv: entity work.btle_aa_detector 
-	generic map(num_timeslots => 16, num_addresses => BTLE_MAXIMUM_AA_MEMORY)
+	generic map(num_timeslots => 16, max_addresses => BTLE_MAXIMUM_AA_MEMORY)
     port map (
     	clock => clock,
     	reset => reset,
 
-        in_seq => input_seq,
+        in_bit_bus => input_seq,
+        in_ch_info => input_ch_info,
 		in_cfg => aa_cfg,
         
-		out_seq => output_seq,
+		out_bit_bus => output_seq,
+		out_ch_info => output_ch_info,
 		out_detect_results => aa_detect_results
     );
 
@@ -63,6 +69,10 @@ begin
 			input_seq.seq <= '0';
 			input_seq.valid <= '0';
 			input_seq.timeslot <= to_unsigned(15, timeslot_t'length);
+
+			input_ch_info.valid <= '1';
+			input_ch_info.adv <= '1';
+			input_ch_info.ch_idx <= to_unsigned(37, input_ch_info.ch_idx'length);
 			
 		   	wait until not reset;
 			wait until rising_edge(clock);

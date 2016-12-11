@@ -59,7 +59,8 @@ architecture rtl of btle_wideband_receiver is
 	signal aa_bit_input: tdm_bit_bus_t;
 	signal aa_ch_input: btle_ch_info_t;
 
-	signal aa_output: tdm_bit_bus_t;
+	signal aa_bit_output: tdm_bit_bus_t;
+	signal aa_ch_output: btle_ch_info_t;
 	signal aa_detect_results: aa_detect_results_t;
 
 
@@ -122,6 +123,9 @@ begin
   		);
 
 	mapper: entity work.btle_channel_mapper
+		generic map (
+			max_channels => num_channels
+		)
 		port map (
 			clock		=> clock,
 			reset		=> reset,
@@ -135,18 +139,20 @@ begin
    	entity work.btle_aa_detector 
 		generic map (
 			num_timeslots => num_channels, 
-			num_addresses => BTLE_MAXIMUM_AA_MEMORY
+			max_addresses => BTLE_MAXIMUM_AA_MEMORY
 		)
    		port map (
     		clock => clock,
     		reset => reset,
     	
-			in_seq => aa_bit_input,
+			in_bit_bus => aa_bit_input,
+			in_ch_info => aa_ch_input,
 
 			in_cfg.valid => '0',
 			in_cfg.preamble_aa => (others => '0'),
 
-			out_seq => aa_output,
+			out_bit_bus => aa_bit_output,
+			out_ch_info => aa_ch_output,
 			out_detect_results => aa_detect_results
 		);
 
@@ -312,14 +318,14 @@ begin
 					ch_in_aa_detected <= (others => '0');
 					ch_in_preamble_aa <= (others => '0');
 
-					if aa_output.valid = '1' then
+					if aa_bit_output.valid = '1' then
 
-						ch_in_bit <= aa_output.seq;
-						ch_in_bit_valid(to_integer(aa_output.timeslot)) <= '1';
+						ch_in_bit <= aa_bit_output.seq;
+						ch_in_bit_valid(to_integer(aa_bit_output.timeslot)) <= '1';
 
 						if aa_detect_results.detected = '1' then
 
-							ch_in_aa_detected(to_integer(aa_output.timeslot)) <= '1';
+							ch_in_aa_detected(to_integer(aa_bit_output.timeslot)) <= '1';
 							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
 							
 						end if;
@@ -482,10 +488,10 @@ begin
 					ch_in_aa_detected <= (others => '0');
 					ch_in_preamble_aa <= (others => '0');
 
-					if aa_output.valid = '1' then
+					if aa_bit_output.valid = '1' then
 
-						ch_in_bit <= aa_output.seq;
-						ch_in_bit_valid(to_integer(aa_output.timeslot)) <= '1';
+						ch_in_bit <= aa_bit_output.seq;
+						ch_in_bit_valid(to_integer(aa_bit_output.timeslot)) <= '1';
 
 						if aa_detect_results.detected = '1' then
 

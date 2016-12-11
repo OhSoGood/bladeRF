@@ -9,6 +9,9 @@ use ieee.numeric_std.all;
 use work.btle_common.all;
 
 entity btle_channel_mapper is
+	generic (
+		max_channels : integer := 1
+	);
 	port (
 		clock:				in std_logic;
 		reset:				in std_logic;
@@ -57,13 +60,17 @@ begin
 				
 				if in_bit_bus.valid = '1' then
 
-					ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_bit_bus.timeslot));
+					if max_channels = 1 then
+						ch_int := 37;
+					else
+						ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_bit_bus.timeslot));
+					end if;
 					
 					if  ch_int /= BTLE_INVALID_CHANNEL then
 
 						out_bit_bus <= in_bit_bus;
 
-						out_ch_info.valid <= '1';
+						out_ch_info.valid <= '1';						
 						out_ch_info.ch_idx <= to_unsigned(ch_int, channel_idx_t'length);
 
 						if ch_int >= 37 and ch_int <= 39 then
