@@ -186,10 +186,7 @@ begin
 			in_imag	   		=> wideband_input.imag,
 			in_valid       	=> wideband_input.valid,
 			
-			out_real		=> fft_output.real,
-			out_imag  		=> fft_output.imag,
-			out_valid       => fft_output.valid,
-			out_bin_idx   	=> fft_output.timeslot
+			out_iq_bus		=> fft_output
     	);
 
 

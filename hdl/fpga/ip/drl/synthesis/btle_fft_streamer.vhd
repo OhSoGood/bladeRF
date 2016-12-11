@@ -6,7 +6,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
+use work.btle_common.all;
 
 entity btle_fft_streamer is
 	generic(order : integer);
@@ -18,11 +18,8 @@ entity btle_fft_streamer is
 		in_real:		in signed(15 downto 0);
 		in_imag:		in signed(15 downto 0);
 		in_valid:       in std_logic;
-		
-		out_bin_idx:   	out unsigned(4 downto 0);
-		out_real:		out signed(15 downto 0);
-		out_imag:		out signed(15 downto 0);
-		out_valid:      out std_logic
+
+		out_iq_bus:		out tdm_iq_bus_t
 	);
 end btle_fft_streamer;
 
@@ -195,17 +192,21 @@ begin
 			if reset = '1'  then
 
 				out_phase := 0;
-				out_bin_idx <= to_unsigned(0, 5);
-				out_valid <= '0';
 				source_ready <= '0';
 
-				out_real <= (others => '0');				
-				out_imag <= (others => '0');
+				out_iq_bus.real <= (others => '0');
+				out_iq_bus.imag <= (others => '0');
+				out_iq_bus.valid <= '0';
+				out_iq_bus.timeslot <= (others => '0');
 
 			elsif rising_edge(clock) then
 
 				source_ready <= '1';
-				out_valid <= '0';
+				
+				out_iq_bus.real <= (others => '0');
+				out_iq_bus.imag <= (others => '0');
+				out_iq_bus.valid <= '0';
+				out_iq_bus.timeslot <= (others => '0');
 			
 				if source_valid = '1' then
 
@@ -215,10 +216,10 @@ begin
 						out_phase := out_phase + 1;
 					end if;
 
-					out_real <= source_real;
-					out_imag <= source_imag;
-					out_bin_idx <= to_unsigned(out_phase, 5);
-					out_valid <= '1';
+					out_iq_bus.real <= source_real;
+					out_iq_bus.imag <= source_imag;
+					out_iq_bus.timeslot <= to_unsigned(out_phase, out_iq_bus.timeslot'length);
+					out_iq_bus.valid <= '1';
 
 					if source_eop = '1' then
 						assert out_phase = 15 report "source_eop asserted when out_phase= " 

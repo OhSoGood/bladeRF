@@ -9,8 +9,12 @@ use ieee.numeric_std.all;
 
 package btle_common is
 
+	constant BTLE_NUM_SUBBANDS : integer := 3;
+	constant BTLE_FFT_SIZE : integer := 16;
 	constant BTLE_SAMPLES_PER_SYMBOL : integer := 2;
 	constant BTLE_MAXIMUM_AA_MEMORY : integer := 5;
+
+	constant BTLE_INVALID_CHANNEL : integer := 63;
 
 	-- Bits
 	constant BTLE_TRIGGER_LEN: integer := 25;
@@ -33,9 +37,16 @@ package btle_common is
 
 	-- Basic types
 	subtype sample_t is signed (15 downto 0);
-	subtype timeslot_t is unsigned (4 downto 0);
+	subtype timeslot_t is unsigned (4 downto 0);			-- 0..15 TDM
+	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)
 
 
+	type btle_ch_info_t is record
+		ch_idx:		channel_idx_t;
+		adv:		std_logic;
+		valid:		std_logic;
+	end record;
+	
 	type iq_bus_t is record
 		real: 		sample_t;
 		imag: 		sample_t;
