@@ -47,9 +47,18 @@ architecture rtl of btle_wideband_receiver is
 
 	signal wideband_input : iq_bus_t;
 	signal fft_output: tdm_iq_bus_t;
-	signal demod_input: tdm_iq_bus_t;
-	signal demod_output: tdm_bit_bus_t;
-	signal aa_input: tdm_bit_bus_t;
+
+	signal demod_ch_input: btle_ch_info_t;
+	signal demod_iq_input: tdm_iq_bus_t;
+	signal demod_bit_output: tdm_bit_bus_t;
+
+	signal mapper_bit_input: tdm_bit_bus_t;
+	signal mapper_bit_output: tdm_bit_bus_t;
+	signal mapper_ch_output: btle_ch_info_t;
+
+	signal aa_bit_input: tdm_bit_bus_t;
+	signal aa_ch_input: btle_ch_info_t;
+
 	signal aa_output: tdm_bit_bus_t;
 	signal aa_detect_results: aa_detect_results_t;
 
@@ -99,7 +108,7 @@ begin
 
 	rx_timestamp <= in_timestamp;
 
-	demod: 
+	demod:
 	entity work.btle_demod_matched 
 		generic map (
 			samples_per_bit => samples_per_bit, 
@@ -108,17 +117,21 @@ begin
 		port map (
     		clock 		=> clock,
     		reset 		=> reset,
-        	in_real 	=> demod_input.real,
-        	in_imag 	=> demod_input.imag,
-			in_valid 	=> demod_input.valid,
-        	in_fft_idx 	=> demod_input.timeslot,
-        	out_bit 	=> demod_output.seq,
-        	out_valid 	=> demod_output.valid,
-        	out_fft_idx => demod_output.timeslot
+        	in_iq_bus 	=> demod_iq_input,
+        	out_bit_bus => demod_bit_output
   		);
 
-
-  	detect: 
+	mapper: entity work.btle_channel_mapper
+		port map (
+			clock		=> clock,
+			reset		=> reset,
+			rf_config	=> "00",
+			in_bit_bus	=> mapper_bit_input,
+			out_ch_info	=> mapper_ch_output,
+			out_bit_bus	=> mapper_bit_output
+		);
+			
+  	aa_detect: 
    	entity work.btle_aa_detector 
 		generic map (
 			num_timeslots => num_channels, 
@@ -128,7 +141,7 @@ begin
     		clock => clock,
     		reset => reset,
     	
-			in_seq => aa_input,
+			in_seq => aa_bit_input,
 
 			in_cfg.valid => '0',
 			in_cfg.preamble_aa => (others => '0'),
@@ -136,6 +149,48 @@ begin
 			out_seq => aa_output,
 			out_detect_results => aa_detect_results
 		);
+
+
+
+	demod_to_mapper:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+			
+				mapper_bit_input.seq <= '0';
+				mapper_bit_input.valid <= '0';
+				mapper_bit_input.timeslot <= (others => '0');
+
+			elsif rising_edge(clock) then
+
+				mapper_bit_input <= demod_bit_output;
+				
+			end if;
+		end
+	process;	
+
+
+	mapper_to_aa:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+
+				aa_bit_input.seq <= '0';
+				aa_bit_input.valid <= '0';
+				aa_bit_input.timeslot <= (others => '0');
+
+				aa_ch_input.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, aa_ch_input.ch_idx'length);
+				aa_ch_input.adv <= '0';
+				aa_ch_input.valid <= '0';
+
+			elsif rising_edge(clock) then
+
+				aa_bit_input <= mapper_bit_output;
+				aa_ch_input <= mapper_ch_output;
+					
+			end if;
+		end
+	process;	
 
 
 	fft_based: if num_channels > 1 generate
@@ -174,16 +229,16 @@ begin
 		end generate;
 
     	fft : entity work.btle_fft_streamer
-		generic map (
-			order => num_channels
-		)
-    	port map (
-			clock 			=> clock,
-			reset 			=> reset,
-			enable			=> enable,
-			in_iq_bus 		=> wideband_input,
-			out_iq_bus		=> fft_output
-    	);
+			generic map (
+				order => num_channels
+			)
+    		port map (
+				clock 			=> clock,
+				reset 			=> reset,
+				enable			=> enable,
+				in_iq_bus 		=> wideband_input,
+				out_iq_bus		=> fft_output
+    		);
 
 
 		fft_input:
@@ -211,32 +266,14 @@ begin
 			begin
 				if reset = '1' then
 
-					demod_input.real <= (others => '0');
-					demod_input.imag <= (others => '0');
-					demod_input.valid <= '0';
-					demod_input.timeslot <= (others => '0');
+					demod_iq_input.real <= (others => '0');
+					demod_iq_input.imag <= (others => '0');
+					demod_iq_input.valid <= '0';
+					demod_iq_input.timeslot <= (others => '0');
 
 				elsif rising_edge(clock) then
 
-					demod_input <= fft_output;
-					
-				end if;
-			end
-		process;	
-
-
-		demod_to_aa:
-		process(clock, reset) is
-			begin
-				if reset = '1' then
-
-					aa_input.seq <= '0';
-					aa_input.valid <= '0';
-					aa_input.timeslot <= (others => '0');
-
-				elsif rising_edge(clock) then
-
-					aa_input <= demod_output;
+					demod_iq_input <= fft_output;
 					
 				end if;
 			end
@@ -402,35 +439,17 @@ begin
 			begin
 				if reset = '1' then
 
-					demod_input.real <= (others => '0');
-					demod_input.imag <= (others => '0');
-					demod_input.valid <= '0';
-					demod_input.timeslot <= (others => '0');
+					demod_iq_input.real <= (others => '0');
+					demod_iq_input.imag <= (others => '0');
+					demod_iq_input.valid <= '0';
+					demod_iq_input.timeslot <= (others => '0');
 
 				elsif rising_edge(clock) then
 
-					demod_input.real  <= in_wb_real;
-					demod_input.imag  <= in_wb_imag;
-					demod_input.valid <= in_wb_valid;
-					demod_input.timeslot <= (others => '0');
-					
-				end if;
-			end
-		process;
-
-
-		demod_to_aa:
-		process(clock, reset) is
-			begin
-				if reset = '1' then
-
-					aa_input.seq <= '0';
-					aa_input.valid <= '0';
-					aa_input.timeslot <= (others => '0');
-
-				elsif rising_edge(clock) then
-
-					aa_input <= demod_output;
+					demod_iq_input.real  <= in_wb_real;
+					demod_iq_input.imag  <= in_wb_imag;
+					demod_iq_input.valid <= in_wb_valid;
+					demod_iq_input.timeslot <= (others => '0');
 					
 				end if;
 			end
@@ -470,7 +489,7 @@ begin
 
 						if aa_detect_results.detected = '1' then
 
-							ch_in_aa_detected(to_integer(demod_output.timeslot)) <= '1';
+							ch_in_aa_detected(0) <= '1';
 							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
 							
 						end if;

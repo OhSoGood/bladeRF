@@ -14,10 +14,10 @@ entity btle_channel_mapper is
 		reset:				in std_logic;
 
 		rf_config:			in unsigned (1 downto 0);
-		in_iq_bus:			in tdm_iq_bus_t;
+		in_bit_bus:			in tdm_bit_bus_t;
 
 		out_ch_info:		out btle_ch_info_t;
-		out_iq_bus:			out tdm_iq_bus_t
+		out_bit_bus:		out tdm_bit_bus_t
 	);
 end btle_channel_mapper;
 
@@ -51,18 +51,17 @@ begin
 				out_ch_info.adv <= '0';
 				out_ch_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, out_ch_info.ch_idx'length);
 
-				out_iq_bus.real <= (others => '0');
-				out_iq_bus.imag <= (others => '0');
-				out_iq_bus.timeslot <= (others => '0');
-				out_iq_bus.valid <= '0';
+				out_bit_bus.seq <= '0';
+				out_bit_bus.timeslot <= (others => '0');
+				out_bit_bus.valid <= '0';
 				
-				if in_iq_bus.valid = '1' then
+				if in_bit_bus.valid = '1' then
 
-					ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_iq_bus.timeslot));
+					ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_bit_bus.timeslot));
 					
 					if  ch_int /= BTLE_INVALID_CHANNEL then
 
-						out_iq_bus <= in_iq_bus;
+						out_bit_bus <= in_bit_bus;
 
 						out_ch_info.valid <= '1';
 						out_ch_info.ch_idx <= to_unsigned(ch_int, channel_idx_t'length);

@@ -6,7 +6,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
+use work.btle_common.all;
 
 entity btle_demod_matched is
 	generic(
@@ -16,17 +16,8 @@ entity btle_demod_matched is
 	port(
 		clock:			in std_logic;
 		reset:			in std_logic;
-
-		-- input signal
-		in_real:		in signed(15 downto 0);
-		in_imag:		in signed(15 downto 0);
-		in_valid:       in std_logic;
-		in_fft_idx:		in unsigned(4 downto 0);
-
-		-- output bits
-		out_bit:		out std_logic := '0';
-		out_valid:		out std_logic := '0';
-		out_fft_idx:	out unsigned(4 downto 0)
+		in_iq_bus:		in tdm_iq_bus_t;
+		out_bit_bus:	out tdm_bit_bus_t
 	);
 end btle_demod_matched;
 
@@ -99,13 +90,13 @@ begin
 
 				mul_valid <= '0';
 
-				if in_valid = '1' then
+				if in_iq_bus.valid = '1' then
 				
-					this_idx := to_integer(in_fft_idx);
+					this_idx := to_integer(in_iq_bus.timeslot);
 					this_phase := phase(this_idx);
 					
-					scaled_in_real := resize(in_real, 12);
-					scaled_in_imag := resize(in_imag, 12);
+					scaled_in_real := resize(in_iq_bus.real, 12);
+					scaled_in_imag := resize(in_iq_bus.imag, 12);
 				
 					mlr := scaled_in_real * FILTER_REF(this_phase).f_lower_real - scaled_in_imag * FILTER_REF(this_phase).f_lower_imag;
 					mli := scaled_in_real * FILTER_REF(this_phase).f_lower_imag + scaled_in_imag * FILTER_REF(this_phase).f_lower_real;
@@ -210,15 +201,15 @@ begin
 		begin
 			if reset = '1' then
 			
-				out_bit <= '0';
-				out_valid <= '0';
-				out_fft_idx <= to_unsigned(0, out_fft_idx'length);
+				out_bit_bus.seq <= '0';
+				out_bit_bus.valid <= '0';
+				out_bit_bus.timeslot <= to_unsigned(0, out_bit_bus.timeslot'length);
 
 			elsif rising_edge(clock) then
 
-				out_fft_idx <= to_unsigned(0, out_fft_idx'length);
-				out_valid <= '0';
-				out_bit <= '0';
+				out_bit_bus.seq <= '0';
+				out_bit_bus.valid <= '0';
+				out_bit_bus.timeslot <= to_unsigned(0, out_bit_bus.timeslot'length);
 
 				if sum_valid = '1' then
 				
@@ -226,11 +217,11 @@ begin
 					lower_sq := unsigned(sum_lower_real * sum_lower_real + sum_lower_imag * sum_lower_imag);
 				
 					if(upper_sq < lower_sq) then
-						out_bit <= '1';
+						out_bit_bus.seq <= '1';
 					end if;
 
-					out_fft_idx <= to_unsigned(sum_idx, out_fft_idx'length);
-					out_valid <= '1';
+					out_bit_bus.timeslot <= to_unsigned(sum_idx, out_bit_bus.timeslot'length);
+					out_bit_bus.valid <= '1';
 				end if;
 			end if;
 		end

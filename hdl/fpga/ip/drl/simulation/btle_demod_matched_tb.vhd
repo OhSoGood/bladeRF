@@ -24,12 +24,12 @@ architecture testbench of btle_demod_matched_tb is
     signal clock: std_logic := '0';
     signal reset: std_logic := '0';
 
-	signal iq_enable : std_logic := '0';
-	signal iq_bus: iq_bus_t;
-	signal iq_complete : std_logic := '0';
+	signal iq_enable: std_logic := '0';
+	signal iq_complete: std_logic := '0';
 
-    signal out_bit: std_logic := '0';
-    signal out_valid: std_logic := '0';
+	signal iq_bus: iq_bus_t;
+	signal bit_bus: tdm_bit_bus_t;
+	
     
 begin
     duv: entity work.btle_demod_matched 
@@ -37,13 +37,11 @@ begin
     port map(
     	clock => clock,
     	reset => reset,
-        in_real => iq_bus.real,
-        in_imag => iq_bus.imag,
-        in_valid => iq_bus.valid,
-        in_fft_idx => to_unsigned(5, 5),
-        out_bit => out_bit,
-        out_valid => out_valid,
-        out_fft_idx => open
+        in_iq_bus.valid => iq_bus.valid,
+        in_iq_bus.real => iq_bus.real,
+       	in_iq_bus.imag => iq_bus.imag,
+       	in_iq_bus.timeslot => to_unsigned(5, 5),
+        out_bit_bus => bit_bus
  	);
 
 	iq: entity work.btle_iq_streamer 
@@ -90,12 +88,12 @@ begin
 				i := 0;
 
 			elsif rising_edge(clock) then
-				if out_valid = '1' then
+				if bit_bus.valid = '1' then
 					if not endfile(rx_bits) then
 						readline(rx_bits, current_line);
 						read(current_line, bit);
 						
-						assert out_bit = bit report "Demodulated bit was wrong at position " & to_string(i) severity failure;
+						assert bit_bus.seq = bit report "Demodulated bit was wrong at position " & to_string(i) severity failure;
 						i := i + 1;
 					else
 						assert false report "End of input bitfile" severity failure;
