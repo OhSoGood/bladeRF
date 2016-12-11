@@ -7,7 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
-
+use work.btle_common.all;
 
 entity btle_fft_streamer_tb is
 	generic(runner_cfg: string);
@@ -29,10 +29,7 @@ architecture testbench of btle_fft_streamer_tb is
 	signal in_real : signed (15 downto 0) := (others => '0');	
 	signal in_valid: std_logic := '0';
 
-	signal out_real:  signed (15 downto 0) := (others => '0');
-	signal out_imag:  signed (15 downto 0) := (others => '0');
-	signal out_bin_idx: unsigned (4 downto 0) := (others => '0');
-	signal out_valid: std_logic := '0';
+	signal out_iq_bus: tdm_iq_bus_t;
 	
 begin
 
@@ -51,7 +48,7 @@ begin
 
 	dut: entity work.btle_fft_streamer
 	generic map (order => 16)
-	port map(
+	port map (
 		clock => clock,
 		reset => reset,
 		enable => '1',
@@ -59,11 +56,8 @@ begin
 		in_imag => in_imag,
 		in_valid => in_valid,
 
-		out_bin_idx => out_bin_idx,
-		out_real => out_real,
-		out_imag => out_imag,
-		out_valid => out_valid
-		);
+		out_iq_bus => out_iq_bus
+	);
 
 
     clock <= not clock after 15.625 ns;
@@ -108,7 +102,7 @@ begin
 				v := 0;
 				
 			elsif rising_edge(clock) then
-				if out_valid = '1' then
+				if out_iq_bus.valid = '1' then
 				
 					if not endfile(rx_complex) then
 					
@@ -116,12 +110,12 @@ begin
 						read(current_line, i);
 						read(current_line, q);
 
-						assert (out_real = i) and (out_imag = q)
-							report "Complex result mismatch in index " & to_string(v) & " (" & to_string(i)  & " " & to_string(q) & ") vs (" & to_string(to_integer(out_real)) & ", " & to_string(to_integer(out_imag)) & ")."
+						assert (out_iq_bus.real = i) and (out_iq_bus.imag = q)
+							report "Complex result mismatch in index " & to_string(v) & " (" & to_string(i)  & " " & to_string(q) & ") vs (" & to_string(to_integer(out_iq_bus.real)) & ", " & to_string(to_integer(out_iq_bus.imag)) & ")."
 							severity failure;
 
-						assert out_bin_idx = v
-							report "Complex bin mismatch: " & to_string(v) & " /= " & to_string(to_integer(out_bin_idx))
+						assert out_iq_bus.timeslot = v
+							report "Complex bin mismatch: " & to_string(v) & " /= " & to_string(to_integer(out_iq_bus.timeslot))
 							severity failure;
 
 						v := v + 1;
