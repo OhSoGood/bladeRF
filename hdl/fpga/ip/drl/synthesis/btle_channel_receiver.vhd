@@ -35,6 +35,10 @@ entity btle_channel_receiver is
 		out_rts:        out std_logic;
 
 		in_aa_detect:	in aa_crc_config_t;
+
+		in_cts_dch:		in std_logic;
+		out_rts_dch:	out std_logic;
+		out_dch_config:	out aa_crc_config_t;
 		
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
@@ -67,11 +71,17 @@ architecture rtl of btle_channel_receiver is
 							STATE_SEND_PACKET_END
 							);
 
+	type dch_state_type is (
+								STATE_DCH_WAIT_CONNECT,
+								STATE_DCH_WAIT_CTS
+							);
+
 
 	-- 10x32 bit words = maximum payload + CRC size of BTLE 
 	type word_array is array(9 downto 0) of std_logic_vector (31 downto 0);
 
 	signal state : ch_state_type;
+	signal dch_state : dch_state_type;
 
 	signal iq_to_mem : 					std_logic_vector(31 downto 0) := (others => '0');
 	signal iq_to_mem_wr_addr :			unsigned(9 downto 0) := (others => '0');
@@ -105,6 +115,9 @@ architecture rtl of btle_channel_receiver is
 	signal crc_result : std_logic_vector (23 downto 0);
 	signal crc_decoded: std_logic := '0';
 	signal crc_valid : std_logic := '0';
+
+	signal aa_detection_memory: aa_crc_config_t;
+	signal payload_bits: word_array;
 	
 begin
 
@@ -244,15 +257,86 @@ begin
 	process;
 
 
+
+
+	config_dch_fsm:
+	process(clock, reset) is
+	
+		begin
+			if reset = '1' then
+
+				out_rts_dch <= '0';
+				out_dch_config <= ( '0', (others => '0'), (others => '0') );
+
+				dch_state <= STATE_DCH_WAIT_CONNECT;
+				
+			elsif rising_edge(clock) then
+
+				out_rts_dch <= '0';
+				out_dch_config <= ( '0', (others => '0'), (others => '0') );
+
+				case dch_state is
+				
+					when STATE_DCH_WAIT_CONNECT =>
+
+						-- If the CRC is good, then check for the CONNECT message which contains a new
+						-- Access Address and CRC Initial value for the data channels
+
+						if crc_decoded = '1' and crc_valid = '1' and header_pdu_type = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, header_pdu_type'length) then
+
+							out_rts_dch <= '1';
+							dch_state <= STATE_DCH_WAIT_CTS;
+							
+						end if;
+
+					when STATE_DCH_WAIT_CTS =>
+
+						out_rts_dch <= '1';
+
+						if in_cts_dch = '1' then
+
+							out_dch_config.valid <= '1';
+							out_dch_config.crc_init <= reverse_any_vector(payload_bits(4)(31 downto 8));
+
+							if payload_bits(3)(31) = '1' then
+								out_dch_config.preamble_aa <= "10101010" & payload_bits(3);
+							else
+								out_dch_config.preamble_aa <= "01010101" & payload_bits(3);
+							end if; 
+
+							
+							--if aa_detection_memory.preamble_aa(31) = '1' then
+							--	out_dch_config.preamble_aa <= "10101010" & aa_detection_memory.preamble_aa(BTLE_AA_LEN - 1 downto 0);
+							--else
+							--	out_dch_config.preamble_aa <= "01010101" & aa_detection_memory.preamble_aa(BTLE_AA_LEN - 1 downto 0);
+							--end if;
+
+							dch_state <= STATE_DCH_WAIT_CONNECT;
+
+						end if;
+						
+					when others =>
+
+						dch_state <= STATE_DCH_WAIT_CONNECT;
+				
+				end case;
+					
+			end if;
+		end
+	process;
+
+
+
+
 	burst_fsm:
 	process(clock, reset) is
 
-		variable payload_bits: word_array;
+
 		variable sub_count : integer := 0;
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
 
-		variable aa_detection_memory: aa_crc_config_t;
+
 		variable aa_timestamp : unsigned (63 downto 0);
 		variable aa_channel_info: btle_ch_info_t;
 		
@@ -260,10 +344,7 @@ begin
 
 			if reset = '1' then
 
-				aa_detection_memory.valid := '0';
-				aa_detection_memory.preamble_aa := (others => '0');
-				aa_detection_memory.crc_init := (others => '0');
-				
+				aa_detection_memory <= ( '0', (others => '0'), (others => '0') );		
 				aa_timestamp := (others => '0');
 			
 				out_rts <= '0';
@@ -272,7 +353,7 @@ begin
 				out_valid <= '0';
 				soh <= '0';
 				sop <= '0';
-	
+
 				iq_from_mem_rd_addr <= (others => '0');
 				
 				state <= STATE_WAIT_DETECT;
@@ -295,7 +376,7 @@ begin
 							-- Save the timetamp and the 'read' buffer position when the AA was detected
 							-- so that symbols (including some pretrigger) can be reported
 
-							aa_detection_memory := in_aa_detect;
+							aa_detection_memory <= in_aa_detect;
 							aa_timestamp := in_timestamp;
 							aa_channel_info := in_ch_info;
 
@@ -336,7 +417,7 @@ begin
  								sub_target := (to_integer(header_length) * 8) + BTLE_CRC_LEN;
 
 								for w in 0 to payload_bits'length - 1  loop
-									payload_bits(w) := (others => '0');
+									payload_bits(w) <= (others => '0');
 								end loop;
 								
 								state <= STATE_RX_PAYLOAD;
@@ -357,17 +438,6 @@ begin
 
 						if crc_decoded = '1' then
 
-							-- If the CRC is good, then check for the CONNECT message which contains a new
-							-- Access Address and CRC Initial value for the data channels
-
-							if crc_valid = '1' and header_pdu_type = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, header_pdu_type'length) then
-
-								
-
-
-							end if;
-
-							
 							state <= STATE_START_REPORT;
 							
 						else
@@ -377,7 +447,7 @@ begin
 
 									-- bit 31 is lsb (received first) as per strange BTLE over the air spec
 									
-									payload_bits(sub_count / 32)(31 - (sub_count mod 32)) := dew_to_modules_seq;
+									payload_bits(sub_count / 32)(31 - (sub_count mod 32)) <= dew_to_modules_seq;
 									sub_count := sub_count + 1;
 
 								end if;

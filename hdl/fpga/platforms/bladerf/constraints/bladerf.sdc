@@ -4,6 +4,7 @@ create_clock -period "38.4 MHz"  [get_ports c4_clock]
 create_clock -period "38.4 MHz"  [get_ports lms_pll_out]
 create_clock -period "32.0 MHz"  [get_ports lms_rx_clock_out]
 create_clock -period "80.0 MHz"  -waveform {0.34 6.59} [get_ports c4_tx_clock]
+#create_clock -period "30.303 ns" -name {altera_reserved_tck} {altera_reserved_tck}
 
 # Virtual clocks
 create_clock -period "100.0 MHz" -name fx3_virtual

@@ -36,6 +36,7 @@ end btle_wideband_receiver;
 architecture rtl of btle_wideband_receiver is
 
 	type bus_array is array(num_channels - 1 downto 0) of sample_t;
+	type config_array_t is array (num_channels - 1 downto 0) of aa_crc_config_t;
 	
 	type ch_array_type is array (0 to 15) OF integer;
 	constant ch_idx_array : ch_array_type := (5, 6, 7, 8, 9, 10, 38, 40, 40, 40, 37, 0, 1, 2, 3, 4 );
@@ -63,6 +64,11 @@ architecture rtl of btle_wideband_receiver is
 	signal aa_ch_output: btle_ch_info_t;
 	signal aa_detect_results: aa_crc_config_t;
 
+	signal mux_dch_config: 		aa_crc_config_t;
+	
+	signal ch_out_dch_config: 	config_array_t;
+	signal ch_in_cts_dch:		std_logic_vector(num_channels - 1 downto 0);
+	signal ch_out_rts_dch:		std_logic_vector(num_channels - 1 downto 0);
 
 	signal ch_in_bit:			std_logic;
 	signal ch_in_bit_valid:		std_logic_vector(num_channels - 1 downto 0);
@@ -152,9 +158,7 @@ begin
 			in_bit_bus => aa_bit_input,
 			in_ch_info => aa_ch_input,
 
-			in_data_ch_cfg.valid => '0',
-			in_data_ch_cfg.preamble_aa => (others => '0'),
-			in_data_ch_cfg.crc_init => (others => '0'),
+			in_data_ch_cfg => mux_dch_config,
 
 			out_bit_bus => aa_bit_output,
 			out_ch_info => aa_ch_output,
@@ -204,6 +208,73 @@ begin
 	process;	
 
 
+	mux_dch_consfig:
+	process(clock, reset) is
+
+		variable active_channel: integer := 0;
+		variable state_dch: wb_state_type;
+
+		begin
+			if reset = '1' then
+
+				mux_dch_config <= ( '0', (others => '0'), (others => '0') );
+				ch_in_cts_dch <= (others => '0');
+
+				state_dch := STATE_WAIT_RTS;
+					
+			elsif rising_edge(clock) then
+
+				mux_dch_config <= ( '0', (others => '0'), (others => '0') );
+				ch_in_cts_dch <= (others => '0');
+
+				case state_dch is
+
+					when STATE_WAIT_RTS =>
+
+						for ch in 0 to num_channels - 1 loop
+
+							if ch_out_rts_dch(ch) = '1' then
+
+								ch_in_cts_dch(ch) <= '1';
+								active_channel := ch;
+								state_dch := STATE_SENDING;
+
+								exit;
+								
+							end if;
+									
+						end loop;
+
+					when STATE_SENDING =>
+
+						if ch_out_rts_dch(active_channel) = '1' then
+							
+							ch_in_cts_dch(active_channel) <= '1';
+
+							if ch_out_dch_config(active_channel).valid = '1' then
+							
+								mux_dch_config <= ch_out_dch_config(active_channel);
+								state_dch := STATE_WAIT_RTS;
+
+							end if;
+
+						else							
+
+							state_dch := STATE_WAIT_RTS;
+
+						end if;
+
+					when others =>
+
+						state_dch := STATE_WAIT_RTS;
+
+				end case;
+					
+			end if;
+		end
+	process;
+
+
 	fft_based: if num_channels > 1 generate
 
 		rx_bank : for i in 0 to num_channels - 1 
@@ -215,19 +286,19 @@ begin
 					samples_per_bit => samples_per_bit
 				)
 				port map (
-					clock => 			clock,
-					reset => 			reset,
+					clock 						=> 	clock,
+					reset 						=> 	reset,
 
-					in_real => 			ch_in_real,
-					in_imag => 			ch_in_imag,
-					in_valid => 		ch_in_valid(i),
-					in_timestamp =>	rx_timestamp,
+					in_real 					=> 	ch_in_real,
+					in_imag 					=> 	ch_in_imag,
+					in_valid 					=> 	ch_in_valid(i),
+					in_timestamp 				=>	rx_timestamp,
 
-					in_demod_seq => 	ch_in_bit,
-					in_demod_valid =>	ch_in_bit_valid(i),
+					in_demod_seq 				=> 	ch_in_bit,
+					in_demod_valid 				=>	ch_in_bit_valid(i),
 					
-					in_cts => 			ch_in_cts(i),
-					out_rts =>			ch_out_rts(i),
+					in_cts 						=> 	ch_in_cts(i),
+					out_rts 					=>	ch_out_rts(i),
 
 					in_ch_info.valid 			=>	ch_in_info_valid(i),
 					in_ch_info.adv				=>	ch_in_info.adv,
@@ -235,11 +306,15 @@ begin
 					
 					in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(i),
 					in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
-					in_aa_detect.crc_init 		=> ch_in_aa_detect_results.crc_init,
+					in_aa_detect.crc_init 		=> 	ch_in_aa_detect_results.crc_init,
 
-					out_real => 		ch_out_real(i),
-					out_imag => 		ch_out_imag(i),
-					out_valid => 		ch_out_valid(i)
+					in_cts_dch					=>	ch_in_cts_dch(i),
+					out_rts_dch					=>	ch_out_rts_dch(i),
+					out_dch_config				=> 	ch_out_dch_config(i),
+
+					out_real 					=> 	ch_out_real(i),
+					out_imag 					=> 	ch_out_imag(i),
+					out_valid 					=> 	ch_out_valid(i)
 				);	
 
 		end generate;
@@ -294,6 +369,10 @@ begin
 				end if;
 			end
 		process;	
+
+
+
+
 
 
 		aa_to_ch:
@@ -450,31 +529,35 @@ begin
 		single_rx: entity work.btle_channel_receiver
 			generic map(channel_index => 37, samples_per_bit => samples_per_bit)
 			port map(
-				clock => 		clock,
-				reset => 		reset,
+				clock 						=> 	clock,
+				reset 						=> 	reset,
 
-				in_real => 		ch_in_real,
-				in_imag => 		ch_in_imag,
-				in_valid => 	ch_in_valid(0),
-				in_timestamp =>	rx_timestamp,
+				in_real 					=> 	ch_in_real,
+				in_imag 					=> 	ch_in_imag,
+				in_valid 					=> 	ch_in_valid(0),
+				in_timestamp 				=>	rx_timestamp,
 
-				in_demod_seq => ch_in_bit,
-				in_demod_valid => ch_in_bit_valid(0),
+				in_demod_seq 				=> ch_in_bit,
+				in_demod_valid 				=> ch_in_bit_valid(0),
 
-				in_cts => 		ch_in_cts(0),
-				out_rts =>		ch_out_rts(0),
+				in_cts 						=> 	ch_in_cts(0),
+				out_rts 					=>	ch_out_rts(0),
 
 				in_ch_info.valid 			=>	ch_in_info_valid(0),
 				in_ch_info.adv				=>	ch_in_info.adv,
 				in_ch_info.ch_idx 			=>	ch_in_info.ch_idx,
 
-				in_aa_detect.valid => 	ch_in_aa_detect_valid(0),
-				in_aa_detect.preamble_aa =>	ch_in_aa_detect_results.preamble_aa,
-				in_aa_detect.crc_init => ch_in_aa_detect_results.crc_init,
+				in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(0),
+				in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
+				in_aa_detect.crc_init 		=> ch_in_aa_detect_results.crc_init,
 
-				out_real => 	ch_out_real(0),
-				out_imag => 	ch_out_imag(0),
-				out_valid => 	ch_out_valid(0)
+				in_cts_dch					=>	ch_in_cts_dch(0),
+				out_rts_dch					=>	ch_out_rts_dch(0),
+				out_dch_config				=> 	ch_out_dch_config(0),
+
+				out_real 					=> 	ch_out_real(0),
+				out_imag 					=> 	ch_out_imag(0),
+				out_valid 					=> 	ch_out_valid(0)
 			);
 
 
