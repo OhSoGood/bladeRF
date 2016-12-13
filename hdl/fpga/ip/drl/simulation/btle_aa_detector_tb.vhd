@@ -28,11 +28,11 @@ architecture testbench of btle_aa_detector_tb is
 
     signal input_seq: tdm_bit_bus_t;
     signal input_ch_info: btle_ch_info_t;
-	signal aa_cfg: aa_config_t;
+	signal aa_cfg: aa_crc_config_t;
 
     signal output_ch_info: btle_ch_info_t;
 	signal output_seq: tdm_bit_bus_t;
-    signal aa_detect_results: aa_detect_results_t;
+    signal aa_detect_results: aa_crc_config_t;
 
 	
 begin
@@ -44,7 +44,7 @@ begin
 
         in_bit_bus => input_seq,
         in_ch_info => input_ch_info,
-		in_cfg => aa_cfg,
+		in_data_ch_cfg => aa_cfg,
         
 		out_bit_bus => output_seq,
 		out_ch_info => output_ch_info,
@@ -65,6 +65,7 @@ begin
 
 			aa_cfg.valid <= '0';
 			aa_cfg.preamble_aa <= (others => '0');
+			aa_cfg.crc_init <= (others => '0');
 
 			input_seq.seq <= '0';
 			input_seq.valid <= '0';
@@ -89,7 +90,7 @@ begin
 				input_seq.seq <= RV.RandSlv(0, 1, 1)(0); 
 				input_seq.valid <= '1';
 
-				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
+				assert aa_detect_results.valid = '0' report "False detect!" severity failure;
 			end loop;
 
 			-- Send the real Advertising Access Address + Preamble
@@ -102,14 +103,15 @@ begin
 				input_seq.seq <= BTLE_BED6(i);
 				input_seq.valid <= '1';
 
-				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
+				assert aa_detect_results.valid = '0' report "False detect!" severity failure;
 			end loop;
 
 			wait until rising_edge(clock);	-- clock in the final bit of the real AA
 			wait until rising_edge(clock);	-- clock out the result
 
-			assert aa_detect_results.detected = '1' report "Missed detection!" severity failure;
-			assert aa_detect_results.preamble_aa = "0101010101101011011111011001000101110001" report "Incorrect Preamble/AA" severity failure;
+			assert aa_detect_results.valid = '1' report "Missed detection!" severity failure;
+			assert aa_detect_results.preamble_aa = BTLE_BED6 report "Incorrect Preamble/AA" severity failure;
+			assert aa_detect_results.crc_init = BTLE_ADV_CRC_INIT report "Incorrect CRC Init" severity failure;
 
 			report("...BED6 detected!");
 			
@@ -123,7 +125,7 @@ begin
 				input_seq.seq <= RV.RandSlv(0, 1, 1)(0); 
 				input_seq.valid <= '1';
 
-				assert aa_detect_results.detected = '0' report "False detect!" severity failure;
+				assert aa_detect_results.valid = '0' report "False detect!" severity failure;
 			end loop;
 
 			wait until rising_edge(clock);

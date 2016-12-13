@@ -61,19 +61,23 @@ architecture rtl of btle_wideband_receiver is
 
 	signal aa_bit_output: tdm_bit_bus_t;
 	signal aa_ch_output: btle_ch_info_t;
-	signal aa_detect_results: aa_detect_results_t;
+	signal aa_detect_results: aa_crc_config_t;
 
 
 	signal ch_in_bit:			std_logic;
 	signal ch_in_bit_valid:		std_logic_vector(num_channels - 1 downto 0);
-	signal ch_in_aa_detected:	std_logic_vector(num_channels - 1 downto 0);
-	signal ch_in_preamble_aa:	preamble_aa_t;
+
+	signal ch_in_aa_detect_results: aa_crc_config_t;
+	signal ch_in_aa_detect_valid:	std_logic_vector(num_channels - 1 downto 0);
 
 
 	signal ch_in_real: 			sample_t;
 	signal ch_in_imag: 			sample_t;
 	signal ch_in_valid:			std_logic_vector(num_channels - 1 downto 0);
 	signal ch_in_cts:			std_logic_vector(num_channels - 1 downto 0);
+
+	signal ch_in_info:			btle_ch_info_t;
+	signal ch_in_info_valid:		std_logic_vector(num_channels - 1 downto 0);
 
 	signal ch_out_rts:			std_logic_vector(num_channels - 1 downto 0);
 	signal ch_out_real: 		bus_array;
@@ -148,8 +152,9 @@ begin
 			in_bit_bus => aa_bit_input,
 			in_ch_info => aa_ch_input,
 
-			in_cfg.valid => '0',
-			in_cfg.preamble_aa => (others => '0'),
+			in_data_ch_cfg.valid => '0',
+			in_data_ch_cfg.preamble_aa => (others => '0'),
+			in_data_ch_cfg.crc_init => (others => '0'),
 
 			out_bit_bus => aa_bit_output,
 			out_ch_info => aa_ch_output,
@@ -224,8 +229,13 @@ begin
 					in_cts => 			ch_in_cts(i),
 					out_rts =>			ch_out_rts(i),
 
-					in_preamble_aa =>	ch_in_preamble_aa,
-					in_aa_detected => 	ch_in_aa_detected(i),
+					in_ch_info.valid 			=>	ch_in_info_valid(i),
+					in_ch_info.adv				=>	ch_in_info.adv,
+					in_ch_info.ch_idx 			=>	ch_in_info.ch_idx,
+					
+					in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(i),
+					in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
+					in_aa_detect.crc_init 		=> ch_in_aa_detect_results.crc_init,
 
 					out_real => 		ch_out_real(i),
 					out_imag => 		ch_out_imag(i),
@@ -294,16 +304,25 @@ begin
 					ch_in_bit <= '0';
 					ch_in_bit_valid <= (others => '0');
 
-					ch_in_aa_detected <= (others => '0');
-					ch_in_preamble_aa <= (others => '0');
-					
 					ch_in_real <= (others => '0');
 					ch_in_imag <= (others => '0');
 					ch_in_valid <= (others => '0');
-
+					
+					ch_in_aa_detect_results.valid <= '0';
+					ch_in_aa_detect_results.preamble_aa <= (others => '0');
+					ch_in_aa_detect_results.crc_init <= (others => '0');
+					ch_in_aa_detect_valid <= (others => '0');
+					
+					ch_in_info.valid <= '0';
+					ch_in_info.adv <= '0';
+					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info_valid <= (others => '0');
+					
 				elsif rising_edge(clock) then
 
-					ch_in_valid <= (others => '0');	
+					ch_in_real <= (others => '0');
+					ch_in_imag <= (others => '0');
+					ch_in_valid <= (others => '0');
 					
 					if fft_output.valid = '1' then
 
@@ -315,19 +334,34 @@ begin
 
 					ch_in_bit <= '0';
 					ch_in_bit_valid <= (others => '0');
-					ch_in_aa_detected <= (others => '0');
-					ch_in_preamble_aa <= (others => '0');
+
+					ch_in_aa_detect_results.valid <= '0';
+					ch_in_aa_detect_results.preamble_aa <= (others => '0');
+					ch_in_aa_detect_results.crc_init <= (others => '0');
+					ch_in_aa_detect_valid <= (others => '0');
+
+					ch_in_info.valid <= '0';
+					ch_in_info.adv <= '0';
+					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info_valid <= (others => '0');
 
 					if aa_bit_output.valid = '1' then
 
 						ch_in_bit <= aa_bit_output.seq;
 						ch_in_bit_valid(to_integer(aa_bit_output.timeslot)) <= '1';
 
-						if aa_detect_results.detected = '1' then
+						if aa_detect_results.valid = '1' then
 
-							ch_in_aa_detected(to_integer(aa_bit_output.timeslot)) <= '1';
-							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
+							ch_in_aa_detect_results <= aa_detect_results;
+							ch_in_aa_detect_valid(to_integer(aa_bit_output.timeslot)) <= '1';
 							
+						end if;
+
+						if aa_ch_output.valid = '1' then
+
+							ch_in_info <= aa_ch_output;
+							ch_in_info_valid(to_integer(aa_bit_output.timeslot)) <= '1';
+
 						end if;
 
 					end if;
@@ -430,8 +464,13 @@ begin
 				in_cts => 		ch_in_cts(0),
 				out_rts =>		ch_out_rts(0),
 
-				in_preamble_aa =>	aa_detect_results.preamble_aa,
-				in_aa_detected =>   ch_in_aa_detected(0),
+				in_ch_info.valid 			=>	ch_in_info_valid(0),
+				in_ch_info.adv				=>	ch_in_info.adv,
+				in_ch_info.ch_idx 			=>	ch_in_info.ch_idx,
+
+				in_aa_detect.valid => 	ch_in_aa_detect_valid(0),
+				in_aa_detect.preamble_aa =>	ch_in_aa_detect_results.preamble_aa,
+				in_aa_detect.crc_init => ch_in_aa_detect_results.crc_init,
 
 				out_real => 	ch_out_real(0),
 				out_imag => 	ch_out_imag(0),
@@ -467,16 +506,23 @@ begin
 			begin
 				if reset = '1' then
 
-					ch_in_bit <='0';
-					ch_in_bit_valid(0) <= '0';
-
-					ch_in_aa_detected <= (others => '0');
-					ch_in_preamble_aa <= (others => '0');
-					
 					ch_in_real  <= (others => '0');
 					ch_in_imag  <= (others => '0');
 					ch_in_valid <= (others => '0');
+					
+					ch_in_bit <='0';
+					ch_in_bit_valid(0) <= '0';
 
+					ch_in_aa_detect_results.valid <= '0';
+					ch_in_aa_detect_results.preamble_aa <= (others => '0');
+					ch_in_aa_detect_results.crc_init <= (others => '0');
+					ch_in_aa_detect_valid <= (others => '0');
+
+					ch_in_info.valid <= '0';
+					ch_in_info.adv <= '0';
+					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info_valid <= (others => '0');
+					
 				elsif rising_edge(clock) then
 
 					ch_in_real  <= in_wb_real;
@@ -485,19 +531,34 @@ begin
 
 					ch_in_bit <= '0';
 					ch_in_bit_valid <= (others => '0');
-					ch_in_aa_detected <= (others => '0');
-					ch_in_preamble_aa <= (others => '0');
+					
+					ch_in_aa_detect_results.valid <= '0';
+					ch_in_aa_detect_results.preamble_aa <= (others => '0');
+					ch_in_aa_detect_results.crc_init <= (others => '0');
+					ch_in_aa_detect_valid <= (others => '0');
+
+					ch_in_info.valid <= '0';
+					ch_in_info.adv <= '0';
+					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info_valid <= (others => '0');
 
 					if aa_bit_output.valid = '1' then
 
 						ch_in_bit <= aa_bit_output.seq;
 						ch_in_bit_valid(to_integer(aa_bit_output.timeslot)) <= '1';
 
-						if aa_detect_results.detected = '1' then
+						if aa_detect_results.valid = '1' then
 
-							ch_in_aa_detected(0) <= '1';
-							ch_in_preamble_aa <= aa_detect_results.preamble_aa;
+							ch_in_aa_detect_results <= aa_detect_results;
+							ch_in_aa_detect_valid(0) <= '1';
 							
+						end if;
+
+						if aa_ch_output.valid = '1' then
+
+							ch_in_info <= aa_ch_output;
+							ch_in_info_valid(0) <= '1';
+
 						end if;
 
 					end if;
@@ -541,7 +602,7 @@ begin
 
 			elsif rising_edge(clock) then
 
-				out_detected <= aa_detect_results.detected;
+				out_detected <= aa_detect_results.valid;
 
 			end if;
 		end

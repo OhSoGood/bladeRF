@@ -29,11 +29,12 @@ entity btle_channel_receiver is
 		in_demod_seq:	in std_logic;
 		in_demod_valid:	in std_logic;
 
+		in_ch_info:		in btle_ch_info_t;
+
 		in_cts:         in std_logic;
 		out_rts:        out std_logic;
 
-		in_preamble_aa:	 in preamble_aa_t;
-    	in_aa_detected:  in std_logic;
+		in_aa_detect:	in aa_crc_config_t;
 		
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
@@ -82,11 +83,13 @@ architecture rtl of btle_channel_receiver is
 	signal demod_out_seq: std_logic := '0';
 	signal demod_out_valid: std_logic := '0';
 
-	signal aa_preamble: 				preamble_aa_t;
-	signal aa_timestamp : 				unsigned (63 downto 0);
 
     signal dew_out_seq: std_logic := '0';
     signal dew_out_valid: std_logic := '0';
+
+	signal dew_to_modules_seq: std_logic;
+	signal dew_to_modules_valid: std_logic;
+
 
 	signal soh: std_logic := '0';		-- Start of header this cycle
 	signal sop: std_logic := '0';		-- Start of payload this cycle
@@ -138,8 +141,8 @@ begin
 			clock			=>	clock,
 			reset			=>	reset,
 			in_soh		=>	soh,
-			in_seq			=>	dew_out_seq,
-			in_valid		=>	dew_out_valid,
+			in_seq			=>	dew_to_modules_seq,
+			in_valid		=>	dew_to_modules_valid,
 			out_decoded		=>	header_decoded,
 			out_valid		=>	header_valid,
 			out_bits        =>  header_bits,
@@ -158,8 +161,8 @@ begin
 			in_soh			=>	soh,
 			in_sop			=>	sop,
 			in_payload_len	=>	header_length,
-			in_seq			=> 	dew_out_seq,
-			in_valid		=>	dew_out_valid,
+			in_seq			=> 	dew_to_modules_seq,
+			in_valid		=>	dew_to_modules_valid,
 			out_crc			=>	crc_result,
 			out_decoded		=>	crc_decoded,
 			out_valid		=>	crc_valid
@@ -182,6 +185,29 @@ begin
 
 					demod_out_seq <= in_demod_seq;
 					demod_out_valid <= '1';
+
+				end if;
+			end if;
+		end
+	process;
+
+
+	dewhiten_out:
+	process(clock, reset) is
+		begin
+			if reset = '1' then
+
+				dew_to_modules_seq <= '0';
+	 			dew_to_modules_valid <= '0';
+	
+			elsif rising_edge(clock) then
+
+				dew_to_modules_valid <= '0';
+				
+				if dew_out_valid = '1' then
+
+					dew_to_modules_seq <= dew_out_seq;
+					dew_to_modules_valid <= '1';
 
 				end if;
 			end if;
@@ -226,12 +252,19 @@ begin
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
 
+		variable aa_detection_memory: aa_crc_config_t;
+		variable aa_timestamp : unsigned (63 downto 0);
+		variable aa_channel_info: btle_ch_info_t;
+		
 		begin
 
 			if reset = '1' then
 
-				aa_preamble <= (others => '0');
-				aa_timestamp <= (others => '0');
+				aa_detection_memory.valid := '0';
+				aa_detection_memory.preamble_aa := (others => '0');
+				aa_detection_memory.crc_init := (others => '0');
+				
+				aa_timestamp := (others => '0');
 			
 				out_rts <= '0';
 				out_real <= (others => '0');
@@ -257,13 +290,15 @@ begin
 				
 					when STATE_WAIT_DETECT =>
 
-						if in_aa_detected = '1' then
+						if in_aa_detect.valid = '1' and in_ch_info.valid = '1' then
 
 							-- Save the timetamp and the 'read' buffer position when the AA was detected
 							-- so that symbols (including some pretrigger) can be reported
 
-							aa_preamble <= in_preamble_aa;
-							aa_timestamp <= in_timestamp;
+							aa_detection_memory := in_aa_detect;
+							aa_timestamp := in_timestamp;
+							aa_channel_info := in_ch_info;
+
 							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
 
 							-- This is the last bit of the Access Address, so wait for the next bit before
@@ -321,17 +356,28 @@ begin
 					when STATE_RX_PAYLOAD =>
 
 						if crc_decoded = '1' then
+
+							-- If the CRC is good, then check for the CONNECT message which contains a new
+							-- Access Address and CRC Initial value for the data channels
+
+							if crc_valid = '1' and header_pdu_type = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, header_pdu_type'length) then
+
+								
+
+
+							end if;
+
 							
 							state <= STATE_START_REPORT;
 							
 						else
-							if dew_out_valid = '1' then
+							if dew_to_modules_valid = '1' then
 
 								if sub_count < sub_target then
 
 									-- bit 31 is lsb (received first) as per strange BTLE over the air spec
 									
-									payload_bits(sub_count / 32)(31 - (sub_count mod 32)) := dew_out_seq;
+									payload_bits(sub_count / 32)(31 - (sub_count mod 32)) := dew_to_modules_seq;
 									sub_count := sub_count + 1;
 
 								end if;
@@ -444,7 +490,7 @@ begin
 						if in_cts = '1' then
 
 							out_imag <= (others => '0');
-							out_real <= "00000000" & signed(aa_preamble(39 downto 32));
+							out_real <= "00000000" & signed(aa_detection_memory.preamble_aa(39 downto 32));
 							out_valid <= '1';
  							total_count := total_count + 1;
 
@@ -457,8 +503,8 @@ begin
 
 						if in_cts = '1' then
 
-							out_imag <= signed(aa_preamble(31 downto 16));
-							out_real <= signed(aa_preamble(15 downto 0));
+							out_imag <= signed(aa_detection_memory.preamble_aa(31 downto 16));
+							out_real <= signed(aa_detection_memory.preamble_aa(15 downto 0));
 							out_valid <= '1';
  							total_count := total_count + 1;
 

@@ -16,6 +16,13 @@ package btle_common is
 
 	constant BTLE_INVALID_CHANNEL : integer := 63;
 
+	constant BTLE_ADV_PDU_ADV_IND: integer := 0;
+	constant BTLE_ADV_PDU_DIRECT_IND: integer := 1;
+	constant BTLE_ADV_PDU_NONCONN_IND: integer := 2;
+	constant BTLE_ADV_PDU_SCAN_REQ: integer := 3;
+	constant BTLE_ADV_PDU_SCAN_RSP: integer := 4;
+	constant BTLE_ADV_PDU_CONNECT_REQ: integer := 5;
+
 	-- Bits
 	constant BTLE_TRIGGER_LEN: integer := 25;
 	constant BTLE_PREAMBLE_LEN: integer := 8;
@@ -25,8 +32,11 @@ package btle_common is
 	constant BTLE_MAX_PAYLOAD_LEN: integer := (37 * 8);
 	constant BTLE_CRC_LEN: integer := 24;
 
+	subtype aa_t is std_logic_vector (BTLE_AA_LEN - 1 downto 0);
 	subtype preamble_aa_t is std_logic_vector (BTLE_PREAMBLE_LEN + BTLE_AA_LEN - 1 downto 0);
-	
+	subtype crc_t is std_logic_vector(BTLE_CRC_LEN - 1 downto 0);
+
+	constant BTLE_ADV_CRC_INIT : crc_t := x"AAAAAA";
 	constant BTLE_BED6 : preamble_aa_t := "0101010101101011011111011001000101110001";
 
 	--Samples
@@ -39,7 +49,6 @@ package btle_common is
 	subtype sample_t is signed (15 downto 0);
 	subtype timeslot_t is unsigned (4 downto 0);			-- 0..15 TDM
 	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)
-
 
 	type btle_ch_info_t is record
 		ch_idx:		channel_idx_t;
@@ -71,14 +80,10 @@ package btle_common is
 		timeslot:	timeslot_t;
 	end record;
 
-	type aa_detect_results_t is record
-		detected: 			std_logic;
+	type aa_crc_config_t is record
+		valid:				std_logic;
 		preamble_aa:		preamble_aa_t;
-	end record;
-
-	type aa_config_t is record
-		valid: 			std_logic;
-		preamble_aa:	preamble_aa_t;
+		crc_init:			crc_t;
 	end record;
 
 end;

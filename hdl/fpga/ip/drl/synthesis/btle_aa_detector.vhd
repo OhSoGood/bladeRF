@@ -19,11 +19,11 @@ entity btle_aa_detector is
 
 		in_bit_bus:			in tdm_bit_bus_t;
 		in_ch_info:			in btle_ch_info_t;
-		in_cfg:				in aa_config_t;
+		in_data_ch_cfg:		in aa_crc_config_t;
 
 		out_bit_bus:		out tdm_bit_bus_t;
 		out_ch_info:		out btle_ch_info_t;
-		out_detect_results:	out aa_detect_results_t
+		out_detect_results:	out aa_crc_config_t
 	);
 end btle_aa_detector;
 
@@ -33,13 +33,8 @@ begin
 	aa_detector:
 	process(clock, reset) is
 
-		type data_ch_aa_t is record
-			valid:		std_logic;
-			aa: 		preamble_aa_t;
-		end record;
-
 		type ch_memory_array_type is array(num_timeslots - 1 downto 0) of preamble_aa_t;
-		type aa_array_type is array(max_addresses - 1 downto 0) of data_ch_aa_t;
+		type aa_array_type is array(max_addresses - 1 downto 0) of aa_crc_config_t;
 
 		variable memory: ch_memory_array_type;
 		variable addresses : aa_array_type;
@@ -54,34 +49,36 @@ begin
 
 				for addr_index in 0 to max_addresses - 1 loop
 					addresses(addr_index).valid := '0';
-					addresses(addr_index).aa 	:= (others => '0');
+					addresses(addr_index).preamble_aa 	:= (others => '0');
+					addresses(addr_index).crc_init 	:= (others => '0');
 				end loop;
 
 				aa_insert_index := 0;
 
-				out_detect_results.detected <= '0';
+				out_detect_results.valid <= '0';
 				out_detect_results.preamble_aa <= (others => '0');
-
+				out_detect_results.crc_init <= (others => '0');
+				
 			elsif rising_edge(clock) then
 
 				out_bit_bus.seq <= '0';
 				out_bit_bus.valid <= '0';
 				out_bit_bus.timeslot <= (others => '0');
 
-				out_detect_results.detected <= '0';
+				out_detect_results.valid <= '0';
 				out_detect_results.preamble_aa <= (others => '0');
-
+				out_detect_results.crc_init <= (others => '0');
+				
 				out_ch_info.valid <= '0';
 				out_ch_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, out_ch_info.ch_idx'length);
 				out_ch_info.adv <= '0';
 
-				if in_cfg.valid = '1' then
+				if in_data_ch_cfg.valid = '1' then
 
 					-- A new Access Address / Preamble has been supplied
 					-- -> Add to the circular list, overwriting the oldest
 
-					addresses(aa_insert_index).valid 	:= '1';
-					addresses(aa_insert_index).aa 		:= in_cfg.preamble_aa;
+					addresses(aa_insert_index) := in_data_ch_cfg;
 
 					aa_insert_index := aa_insert_index + 1;
 
@@ -109,8 +106,9 @@ begin
 							
 							if memory (to_integer(in_bit_bus.timeslot)) = BTLE_BED6 then
 
+								out_detect_results.valid <= '1';
 								out_detect_results.preamble_aa <= BTLE_BED6;
-								out_detect_results.detected <= '1';
+								out_detect_results.crc_init <= BTLE_ADV_CRC_INIT;
 							
 							end if;
 
@@ -123,10 +121,9 @@ begin
 
 								if addresses(addr_index).valid = '1' then
 
-									if memory(to_integer(in_bit_bus.timeslot)) = addresses(addr_index).aa then
-									
-										out_detect_results.preamble_aa <= addresses(addr_index).aa;
-										out_detect_results.detected <= '1';
+									if memory(to_integer(in_bit_bus.timeslot)) = addresses(addr_index).preamble_aa then
+								
+										out_detect_results <= addresses(addr_index);
 										exit;
 
 									end if;
