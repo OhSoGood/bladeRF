@@ -22,6 +22,7 @@ package btle_common is
 	constant BTLE_ADV_PDU_SCAN_REQ: integer := 3;
 	constant BTLE_ADV_PDU_SCAN_RSP: integer := 4;
 	constant BTLE_ADV_PDU_CONNECT_REQ: integer := 5;
+	constant BTLE_ADV_PDU_ADV_SCAN_IND: integer:= 6;
 
 	-- Bits
 	constant BTLE_TRIGGER_LEN: integer := 25;
@@ -49,6 +50,11 @@ package btle_common is
 	subtype sample_t is signed (15 downto 0);
 	subtype timeslot_t is unsigned (4 downto 0);			-- 0..15 TDM
 	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)
+
+	subtype header_bits_t is std_logic_vector (BTLE_HEADER_LEN - 1 downto 0);
+	subtype payload_len_t is unsigned (5 downto 0);
+	subtype pdu_llid_type_t is unsigned (3 downto 0);
+
 
 	type btle_ch_info_t is record
 		ch_idx:		channel_idx_t;
@@ -86,6 +92,24 @@ package btle_common is
 		crc_init:			crc_t;
 	end record;
 
+	type common_header_t is record
+		decoded:			std_logic;
+		valid:				std_logic;
+		length:				payload_len_t;
+		pdu_llid:			pdu_llid_type_t;
+		bits:				header_bits_t;
+	end record;
+
+	type adv_header_t is record
+		tx_addr:			std_logic;
+		rx_addr:			std_logic;
+	end record;
+
+	type data_header_t is record
+		md:					std_logic;
+		sn:					std_logic;
+		nesn:				std_logic;	
+	end record;
 end;
 
 

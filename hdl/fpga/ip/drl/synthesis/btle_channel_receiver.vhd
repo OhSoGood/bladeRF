@@ -49,39 +49,12 @@ end btle_channel_receiver;
 
 architecture rtl of btle_channel_receiver is
 
-	type ch_state_type is ( 
-							STATE_WAIT_DETECT, 
-							STATE_WAIT_CTS, 
-							STATE_TRIGGER_HEADER,
-							STATE_RX_HEADER,
-							STATE_RX_PAYLOAD,
-							STATE_START_REPORT,
-							STATE_SEND_PROTOCOL_VERSION,
-							STATE_SEND_BOARD_CHANNEL_ID,
-							STATE_SEND_TIMESTAMP1,
-							STATE_SEND_TIMESTAMP2,
-							STATE_SEND_DECODE_STATUS,
-							STATE_SEND_PREAMBLE,
-							STATE_SEND_AA,
-							STATE_SEND_PAYLOAD_COUNT,
-							STATE_SEND_PAYLOAD,
-							STATE_SEND_SAMPLE_COUNT,
-							STATE_SEND_SAMPLES,
-							STATE_SEND_NULL,
-							STATE_SEND_PACKET_END
-							);
-
-	type dch_state_type is (
-								STATE_DCH_WAIT_CONNECT,
-								STATE_DCH_WAIT_CTS
-							);
-
 
 	-- 10x32 bit words = maximum payload + CRC size of BTLE 
 	type word_array is array(9 downto 0) of std_logic_vector (31 downto 0);
 
-	signal state : ch_state_type;
-	signal dch_state : dch_state_type;
+
+
 
 	signal iq_to_mem : 					std_logic_vector(31 downto 0) := (others => '0');
 	signal iq_to_mem_wr_addr :			unsigned(9 downto 0) := (others => '0');
@@ -100,21 +73,18 @@ architecture rtl of btle_channel_receiver is
 	signal dew_to_modules_seq: std_logic;
 	signal dew_to_modules_valid: std_logic;
 
-
 	signal soh: std_logic := '0';		-- Start of header this cycle
 	signal sop: std_logic := '0';		-- Start of payload this cycle
 	
-	signal header_decoded: std_logic := '0';
-	signal header_valid: std_logic := '0';
-	signal header_bits: std_logic_vector (15 downto 0);
-	signal header_pdu_type : unsigned (3 downto 0);
-	signal header_length: unsigned (5 downto 0);
-	signal header_tx_addr : std_logic;
-	signal header_rx_addr : std_logic;
+
 
 	signal crc_result : std_logic_vector (23 downto 0);
 	signal crc_decoded: std_logic := '0';
 	signal crc_valid : std_logic := '0';
+
+	signal common_header: common_header_t;
+	signal adv_header: adv_header_t;
+	signal data_header: data_header_t;
 
 	signal aa_detection_memory: aa_crc_config_t;
 	signal payload_bits: word_array;
@@ -148,21 +118,17 @@ begin
 			out_valid => dew_out_valid
 		);
 
-	hdr_decode:
+	adv_hdr_decode:
 	entity work.btle_adv_header
 		port map (
 			clock			=>	clock,
 			reset			=>	reset,
-			in_soh		=>	soh,
+			in_soh			=>	soh,
 			in_seq			=>	dew_to_modules_seq,
 			in_valid		=>	dew_to_modules_valid,
-			out_decoded		=>	header_decoded,
-			out_valid		=>	header_valid,
-			out_bits        =>  header_bits,
-			out_pdu_type	=>  header_pdu_type,	-- out unsigned (3 downto 0);
-			out_length		=>	header_length,		--out unsigned (5 downto 0);
-			out_tx_addr		=>  header_tx_addr, 	
-			out_rx_addr		=>	header_rx_addr
+			
+			out_common_hdr	=>	common_header,
+			out_adv_hdr     =>  adv_header
 		);
 
 
@@ -173,7 +139,7 @@ begin
 			reset			=>	reset,
 			in_soh			=>	soh,
 			in_sop			=>	sop,
-			in_payload_len	=>	header_length,
+			in_payload_len	=>	common_header.length,
 			in_seq			=> 	dew_to_modules_seq,
 			in_valid		=>	dew_to_modules_valid,
 			out_crc			=>	crc_result,
@@ -261,14 +227,17 @@ begin
 
 	config_dch_fsm:
 	process(clock, reset) is
-	
+
+		type dch_state_t is ( STATE_DCH_WAIT_CONNECT, STATE_DCH_WAIT_CTS );
+		variable dch_state : dch_state_t;
+
 		begin
 			if reset = '1' then
 
 				out_rts_dch <= '0';
 				out_dch_config <= ( '0', (others => '0'), (others => '0') );
 
-				dch_state <= STATE_DCH_WAIT_CONNECT;
+				dch_state := STATE_DCH_WAIT_CONNECT;
 				
 			elsif rising_edge(clock) then
 
@@ -282,10 +251,10 @@ begin
 						-- If the CRC is good, then check for the CONNECT message which contains a new
 						-- Access Address and CRC Initial value for the data channels
 
-						if crc_decoded = '1' and crc_valid = '1' and header_pdu_type = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, header_pdu_type'length) then
+						if crc_decoded = '1' and crc_valid = '1' and common_header.pdu_llid = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, common_header.pdu_llid'length) then
 
 							out_rts_dch <= '1';
-							dch_state <= STATE_DCH_WAIT_CTS;
+							dch_state := STATE_DCH_WAIT_CTS;
 							
 						end if;
 
@@ -303,21 +272,14 @@ begin
 							else
 								out_dch_config.preamble_aa <= "01010101" & payload_bits(3);
 							end if; 
-
-							
-							--if aa_detection_memory.preamble_aa(31) = '1' then
-							--	out_dch_config.preamble_aa <= "10101010" & aa_detection_memory.preamble_aa(BTLE_AA_LEN - 1 downto 0);
-							--else
-							--	out_dch_config.preamble_aa <= "01010101" & aa_detection_memory.preamble_aa(BTLE_AA_LEN - 1 downto 0);
-							--end if;
-
-							dch_state <= STATE_DCH_WAIT_CONNECT;
+						
+							dch_state := STATE_DCH_WAIT_CONNECT;
 
 						end if;
 						
 					when others =>
 
-						dch_state <= STATE_DCH_WAIT_CONNECT;
+						dch_state := STATE_DCH_WAIT_CONNECT;
 				
 				end case;
 					
@@ -331,11 +293,31 @@ begin
 	burst_fsm:
 	process(clock, reset) is
 
+		type ch_state_t is (	STATE_WAIT_DETECT, 
+								STATE_WAIT_CTS, 
+								STATE_TRIGGER_HEADER,
+								STATE_RX_HEADER,
+								STATE_RX_PAYLOAD,
+								STATE_START_REPORT,
+								STATE_SEND_PROTOCOL_VERSION,
+								STATE_SEND_BOARD_CHANNEL_ID,
+								STATE_SEND_TIMESTAMP1,
+								STATE_SEND_TIMESTAMP2,
+								STATE_SEND_DECODE_STATUS,
+								STATE_SEND_PREAMBLE,
+								STATE_SEND_AA,
+								STATE_SEND_PAYLOAD_COUNT,
+								STATE_SEND_PAYLOAD,
+								STATE_SEND_SAMPLE_COUNT,
+								STATE_SEND_SAMPLES,
+								STATE_SEND_NULL,
+								STATE_SEND_PACKET_END );
+
+		variable state : ch_state_t;
 
 		variable sub_count : integer := 0;
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
-
 
 		variable aa_timestamp : unsigned (63 downto 0);
 		variable aa_channel_info: btle_ch_info_t;
@@ -356,7 +338,7 @@ begin
 
 				iq_from_mem_rd_addr <= (others => '0');
 				
-				state <= STATE_WAIT_DETECT;
+				state := STATE_WAIT_DETECT;
 				
 			elsif rising_edge(clock) then
 
@@ -385,7 +367,7 @@ begin
 							-- This is the last bit of the Access Address, so wait for the next bit before
 							-- starting to receive the header
 							
-							state <= STATE_TRIGGER_HEADER;
+							state := STATE_TRIGGER_HEADER;
 
 						end if;
 
@@ -394,15 +376,15 @@ begin
 						if in_demod_valid = '1' then
 
 							soh <= '1';
-							state <= STATE_RX_HEADER;
+							state := STATE_RX_HEADER;
 
 						end if;
 							
 					when STATE_RX_HEADER =>
 
-						if header_decoded = '1' then
+						if common_header.decoded = '1' then
 
-							if header_valid = '1' then
+							if common_header.valid = '1' then
 
 								-- The header was decoded OK
 								-- -> Signal start of payload (SOP)
@@ -414,13 +396,13 @@ begin
 								-- Accumulate in groups of 32 slv for ease of processing
 								
  								sub_count := 0;
- 								sub_target := (to_integer(header_length) * 8) + BTLE_CRC_LEN;
+ 								sub_target := (to_integer(common_header.length) * 8) + BTLE_CRC_LEN;
 
 								for w in 0 to payload_bits'length - 1  loop
 									payload_bits(w) <= (others => '0');
 								end loop;
 								
-								state <= STATE_RX_PAYLOAD;
+								state := STATE_RX_PAYLOAD;
 
 							else
 
@@ -428,7 +410,7 @@ begin
 								-- -> No point decoding the payload as have no reliable idea how long it is
 								-- -> Start reporting with known information.
 								
-								state <= STATE_START_REPORT;
+								state := STATE_START_REPORT;
 
 							end if;
 
@@ -438,7 +420,7 @@ begin
 
 						if crc_decoded = '1' then
 
-							state <= STATE_START_REPORT;
+							state := STATE_START_REPORT;
 							
 						else
 							if dew_to_modules_valid = '1' then
@@ -463,7 +445,7 @@ begin
  						sub_target := 0;
  						total_count := 0;
  						
-						state <= STATE_WAIT_CTS;
+						state := STATE_WAIT_CTS;
 						
 					when STATE_WAIT_CTS =>
 
@@ -476,7 +458,7 @@ begin
 							out_valid <= '1';
 							total_count := total_count + 1;
 
-							state <= STATE_SEND_PROTOCOL_VERSION;
+							state := STATE_SEND_PROTOCOL_VERSION;
 							
 						end if;
 
@@ -491,7 +473,7 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
-							state <= STATE_SEND_BOARD_CHANNEL_ID;
+							state := STATE_SEND_BOARD_CHANNEL_ID;
 							
 						end if;
 
@@ -506,7 +488,7 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
-							state <= STATE_SEND_TIMESTAMP1;
+							state := STATE_SEND_TIMESTAMP1;
 
 						end if;
 
@@ -521,7 +503,7 @@ begin
 							out_valid <= '1';							
  							total_count := total_count + 1;
 
-							state <= STATE_SEND_TIMESTAMP2;
+							state := STATE_SEND_TIMESTAMP2;
 
 						end if;
 
@@ -536,7 +518,7 @@ begin
 							out_valid <= '1';
 							total_count := total_count + 1;
 							
-							state <= STATE_SEND_DECODE_STATUS;
+							state := STATE_SEND_DECODE_STATUS;
 						end if;
 
 					when STATE_SEND_DECODE_STATUS =>
@@ -545,12 +527,12 @@ begin
 
 						if in_cts = '1' then
 
-							out_imag <= "00000000000000" & crc_valid & header_valid;
-							out_real <= signed(header_bits);
+							out_imag <= "00000000000000" & crc_valid & common_header.valid;
+							out_real <= signed(common_header.bits);
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state <= STATE_SEND_PREAMBLE;
+ 							state := STATE_SEND_PREAMBLE;
  						end if;
 
  					when STATE_SEND_PREAMBLE =>
@@ -564,7 +546,7 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state <= STATE_SEND_AA;
+ 							state := STATE_SEND_AA;
 						end if;
 
  					when STATE_SEND_AA =>
@@ -578,7 +560,7 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state <= STATE_SEND_PAYLOAD_COUNT;
+ 							state := STATE_SEND_PAYLOAD_COUNT;
 						end if;
  					
 					when STATE_SEND_PAYLOAD_COUNT =>
@@ -587,24 +569,24 @@ begin
 
 						if in_cts = '1' then
 
-							if header_valid = '1' then
+							if common_header.valid = '1' then
 
 								out_imag <= (others => '0');
-								out_real <= signed(resize(header_length , out_real'length));
+								out_real <= signed(resize(common_header.length , out_real'length));
 								sub_count := 0;
 
 								-- Payload plus CRC length (+3) rounded up to whole number of 32bit words (+3/4)
 								-- Maximum is 40 bytes (37 + 3) = 10 words.
 								
-								sub_target := (to_integer(header_length) + 3 + 3) / 4;
+								sub_target := (to_integer(common_header.length) + 3 + 3) / 4;
 								
-								state <= STATE_SEND_PAYLOAD;
+								state := STATE_SEND_PAYLOAD;
 
 							else
 
 								out_imag <= (others => '0');
 								out_real <= (others => '0');
-								state <= STATE_SEND_SAMPLE_COUNT;
+								state := STATE_SEND_SAMPLE_COUNT;
 								
 							end if;
 
@@ -627,7 +609,7 @@ begin
 
 							if sub_count >= sub_target then
 
-								state <= STATE_SEND_SAMPLE_COUNT;
+								state := STATE_SEND_SAMPLE_COUNT;
 
 							end if;
 						end if;
@@ -638,13 +620,13 @@ begin
 
 						if in_cts = '1' then
 
-							-- How amny samples to send?
+							-- How many samples to send?
 							-- If header and CRC were correct then just send enough to cover the burst plus
 							-- pre/post trigger.
 							-- Otherwise, send the worst case.
 
-							if header_valid = '1' and crc_valid = '1' then
-								sub_target := BTLE_SAMPLES_PER_SYMBOL * (BTLE_TRIGGER_LEN + BTLE_PREAMBLE_LEN + BTLE_AA_LEN + BTLE_HEADER_LEN + (to_integer(header_length) * 8) + BTLE_CRC_LEN + BTLE_TRIGGER_LEN);
+							if common_header.valid = '1' and crc_valid = '1' then
+								sub_target := BTLE_SAMPLES_PER_SYMBOL * (BTLE_TRIGGER_LEN + BTLE_PREAMBLE_LEN + BTLE_AA_LEN + BTLE_HEADER_LEN + (to_integer(common_header.length) * 8) + BTLE_CRC_LEN + BTLE_TRIGGER_LEN);
 							else
 								sub_target := BTLE_MEMORY_LEN;
 							end if;
@@ -657,7 +639,7 @@ begin
 							sub_count := 0;
 
 
- 							state <= STATE_SEND_SAMPLES;
+ 							state := STATE_SEND_SAMPLES;
  						end if;
 
 					
@@ -685,7 +667,7 @@ begin
 								if sub_count >= sub_target then
 
 									sub_count := 0;
-									state <= STATE_SEND_NULL;
+									state := STATE_SEND_NULL;
 									
 								end if;
 								
@@ -707,7 +689,7 @@ begin
 								
 							if total_count = 1023 then
 
-								state <= STATE_SEND_PACKET_END;
+								state := STATE_SEND_PACKET_END;
 
 							end if;
 
@@ -725,7 +707,7 @@ begin
 
 							sub_count := 0;
 							total_count := 0;
-							state <= STATE_WAIT_DETECT;
+							state := STATE_WAIT_DETECT;
 
 						end if;
 
@@ -733,7 +715,7 @@ begin
 
 						sub_count := 0;
 						total_count := 0;
-						state <= STATE_WAIT_DETECT;
+						state := STATE_WAIT_DETECT;
 				
 				end case;
 
