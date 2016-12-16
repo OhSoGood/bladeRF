@@ -56,7 +56,8 @@ begin
 	);
 
 	iq: entity work.btle_iq_streamer 
-	generic map(filepath => TB_DATA_PATH & "0_connect_adv_aa_hdr_crc.txt")
+	--generic map(filepath => TB_DATA_PATH & "0_connect_adv_aa_hdr_crc.txt")
+	generic map(filepath => TB_DATA_PATH & "connect_data_stitch.txt")
 	port map(
 		clock => clock,
 		reset => reset,
@@ -80,7 +81,7 @@ begin
 			wait until iq_complete;
 			iq_enable <= '0';
 
-			assert detections = 3 report "Failed to detect exactly 2 AA burst"  severity failure;
+			assert detections = 9 report "Failed to detect exactly 9 AA burst"  severity failure;
 			
         	report("End of testbench. All tests passed.");
         	test_runner_cleanup(runner);

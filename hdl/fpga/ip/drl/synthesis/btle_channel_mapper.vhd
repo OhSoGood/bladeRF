@@ -43,7 +43,7 @@ begin
 	channeliser:
 	process(clock, reset) is
 
-		variable ch_int: integer;
+		variable ch_int: integer range 0 to BTLE_INVALID_CHANNEL;
 
 		begin
 			if reset = '1' then

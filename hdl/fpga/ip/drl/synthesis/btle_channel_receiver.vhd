@@ -86,6 +86,7 @@ architecture rtl of btle_channel_receiver is
 	signal adv_header: adv_header_t;
 	signal data_header: data_header_t;
 
+	signal aa_channel_info: btle_ch_info_t;
 	signal aa_detection_memory: aa_crc_config_t;
 	signal payload_bits: word_array;
 	
@@ -126,9 +127,10 @@ begin
 			in_soh			=>	soh,
 			in_seq			=>	dew_to_modules_seq,
 			in_valid		=>	dew_to_modules_valid,
-			
+			in_ch_info		=>	aa_channel_info,
 			out_common_hdr	=>	common_header,
-			out_adv_hdr     =>  adv_header
+			out_adv_hdr     =>  adv_header,
+			out_data_hdr	=>  data_header
 		);
 
 
@@ -142,6 +144,7 @@ begin
 			in_payload_len	=>	common_header.length,
 			in_seq			=> 	dew_to_modules_seq,
 			in_valid		=>	dew_to_modules_valid,
+			in_seed			=>	aa_detection_memory.crc_init,
 			out_crc			=>	crc_result,
 			out_decoded		=>	crc_decoded,
 			out_valid		=>	crc_valid
@@ -265,7 +268,8 @@ begin
 						if in_cts_dch = '1' then
 
 							out_dch_config.valid <= '1';
-							out_dch_config.crc_init <= reverse_any_vector(payload_bits(4)(31 downto 8));
+							--out_dch_config.crc_init <= reverse_any_vector(payload_bits(4)(31 downto 8));
+							out_dch_config.crc_init <= payload_bits(4)(31 downto 8);
 
 							if payload_bits(3)(31) = '1' then
 								out_dch_config.preamble_aa <= "10101010" & payload_bits(3);
@@ -320,7 +324,7 @@ begin
 		variable total_count : integer := 0;
 
 		variable aa_timestamp : unsigned (63 downto 0);
-		variable aa_channel_info: btle_ch_info_t;
+
 		
 		begin
 
@@ -360,7 +364,7 @@ begin
 
 							aa_detection_memory <= in_aa_detect;
 							aa_timestamp := in_timestamp;
-							aa_channel_info := in_ch_info;
+							aa_channel_info <= in_ch_info;
 
 							iq_from_mem_rd_addr <= (iq_to_mem_wr_addr + 1024 - BTLE_DEMOD_TAP_POSITION) mod 1024;
 

@@ -18,6 +18,7 @@ entity btle_crc is
 		in_payload_len:		in unsigned (5 downto 0);	-- Payload length in bytes
 		in_seq:       		in std_logic;
 		in_valid:			in std_logic;
+		in_seed:			in crc_t;			
 		out_crc:			out std_logic_vector (23 downto 0);
 		out_decoded:		out std_logic;
 		out_valid:			out std_logic
@@ -54,7 +55,7 @@ begin
 
 				if in_soh = '1' then	
 
-					bs := x"AAAAAA";
+					bs := in_seed;
 					state := STATE_CALC_HDR;
 					countdown := BTLE_HEADER_LEN;
 
@@ -73,8 +74,13 @@ begin
 							--& to_string(countdown) 
 						severity failure;
 
-					state := STATE_CALC_PAYLOAD;
-					countdown := 8 * to_integer(in_payload_len);
+					if in_payload_len /= 0 then
+						state := STATE_CALC_PAYLOAD;
+						countdown := 8 * to_integer(in_payload_len);
+					else
+						state := STATE_CHECK_CRC;
+						countdown := BTLE_CRC_LEN;
+					end if;
 
 				end if;
 

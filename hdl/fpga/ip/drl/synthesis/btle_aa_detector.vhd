@@ -38,7 +38,7 @@ begin
 
 		variable memory: ch_memory_array_type;
 		variable addresses : aa_array_type;
-		variable aa_insert_index : integer;
+		variable aa_insert_index : integer range 0 to max_addresses - 1 := 0;
 	
 		begin
 			if reset = '1' then
@@ -80,10 +80,10 @@ begin
 
 					addresses(aa_insert_index) := in_data_ch_cfg;
 
-					aa_insert_index := aa_insert_index + 1;
-
-					if aa_insert_index = max_addresses then
+					if aa_insert_index = max_addresses - 1 then
 						aa_insert_index := 0;
+					else
+						aa_insert_index := aa_insert_index + 1;
 					end if;
 
 				end if;

@@ -49,7 +49,6 @@ architecture rtl of btle_wideband_receiver is
 	signal wideband_input : iq_bus_t;
 	signal fft_output: tdm_iq_bus_t;
 
-	signal demod_ch_input: btle_ch_info_t;
 	signal demod_iq_input: tdm_iq_bus_t;
 	signal demod_bit_output: tdm_bit_bus_t;
 
@@ -321,7 +320,8 @@ begin
 
     	fft : entity work.btle_fft_streamer
 			generic map (
-				order => num_channels
+				order => num_channels,
+				fft_window => BTLE_WINDOW_HAMMING
 			)
     		port map (
 				clock 			=> clock,

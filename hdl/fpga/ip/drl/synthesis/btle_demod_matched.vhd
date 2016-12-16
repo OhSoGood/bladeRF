@@ -66,8 +66,8 @@ begin
 		variable phase : phase_array_t;
 		variable mlr, mli, mur, mui : signed(19 downto 0);
 
-		variable this_idx : integer;
-		variable this_phase : integer;
+		variable this_idx : integer range 0 to max_channels - 1;
+		variable this_phase : integer range 0 to samples_per_bit - 1;
 
 		variable scaled_in_real : signed(11 downto 0);
 		variable scaled_in_imag : signed(11 downto 0);

@@ -9,7 +9,10 @@ use ieee.numeric_std.all;
 use work.btle_common.all;
 
 entity btle_fft_streamer is
-	generic(order : integer);
+	generic (
+		order : integer;
+		fft_window: integer := BTLE_WINDOW_NONE
+	);
 	port(
 		clock:			in std_logic;
 		reset:			in std_logic;
@@ -21,6 +24,36 @@ end btle_fft_streamer;
 
 
 architecture rtl of btle_fft_streamer is
+
+
+ --0.5402     1
+ --   2.0879  2
+ --   4.4341  4
+ --   7.2619  7
+ --  10.1893  10
+ --  12.8211  13
+ --  14.8017  15
+ --  15.8638  16
+ --  15.8638  16
+ --  14.8017  15
+ --  12.8211  13
+ -- 10.1893   10
+ --   7.2619  7
+ --   4.4341  4
+ --   2.0879  2
+ --   0.5402  1
+
+	-- Noramised to 2048
+
+	type window_t is array (0 to 15) OF integer range 0 to 2047;
+	type window_array_t is array (0 to BTLE_WINDOW_NONE - 1) of window_t;
+	
+
+	constant window_array : window_array_t := (
+		( 69, 267, 568, 930, 1304, 1641, 1895, 2031, 2031, 1895, 1641, 1304, 930, 568, 267,  69),									-- hanning(16) * 2048						
+		(164, 245, 476, 815, 1204, 1577, 1868, 2027, 2027, 1868, 1577, 1204, 815, 476, 245, 164)	-- hamming(16) * 2048
+	);
+
 
 	signal fftpts_in : std_logic_vector (4 downto 0) := (others => '0'); 
 	signal fftpts_out : std_logic_vector (4 downto 0):= (others => '0'); 
@@ -42,43 +75,43 @@ architecture rtl of btle_fft_streamer is
 	signal source_ready: std_logic := '0';
 	signal source_real:  signed (15 downto 0) := (others => '0');
 
-	attribute preserve : boolean;
-	attribute preserve of fftpts_in : signal is true;
-	attribute preserve of fftpts_out : signal is true;
-	attribute preserve of inverse : signal is true;
-	attribute preserve of sink_eop : signal is true;
-	attribute preserve of sink_error : signal is true;
-	attribute preserve of sink_imag : signal is true;
-	attribute preserve of sink_ready : signal is true;
-	attribute preserve of sink_real : signal is true;
-	attribute preserve of sink_sop : signal is true;
-	attribute preserve of sink_valid : signal is true;
-	attribute preserve of source_eop : signal is true;
-	attribute preserve of source_error : signal is true;
-	attribute preserve of source_imag : signal is true;
-	attribute preserve of source_sop : signal is true;
-	attribute preserve of source_valid : signal is true;
-	attribute preserve of source_ready : signal is true;
-	attribute preserve of source_real : signal is true;
+	--attribute preserve : boolean;
+	--attribute preserve of fftpts_in : signal is true;
+	--attribute preserve of fftpts_out : signal is true;
+	--attribute preserve of inverse : signal is true;
+	--attribute preserve of sink_eop : signal is true;
+	--attribute preserve of sink_error : signal is true;
+	--attribute preserve of sink_imag : signal is true;
+	--attribute preserve of sink_ready : signal is true;
+	--attribute preserve of sink_real : signal is true;
+	--attribute preserve of sink_sop : signal is true;
+	--attribute preserve of sink_valid : signal is true;
+	--attribute preserve of source_eop : signal is true;
+	--attribute preserve of source_error : signal is true;
+	--attribute preserve of source_imag : signal is true;
+	--attribute preserve of source_sop : signal is true;
+	--attribute preserve of source_valid : signal is true;
+	--attribute preserve of source_ready : signal is true;
+	--attribute preserve of source_real : signal is true;
 
-	attribute syn_keep : boolean;
-	attribute syn_keep of fftpts_in : signal is true;
-	attribute syn_keep of fftpts_out : signal is true;
-	attribute syn_keep of inverse : signal is true;
-	attribute syn_keep of sink_eop : signal is true;
-	attribute syn_keep of sink_error : signal is true;
-	attribute syn_keep of sink_imag : signal is true;
-	attribute syn_keep of sink_ready : signal is true;
-	attribute syn_keep of sink_real : signal is true;
-	attribute syn_keep of sink_sop : signal is true;
-	attribute syn_keep of sink_valid : signal is true;
-	attribute syn_keep of source_eop : signal is true;
-	attribute syn_keep of source_error : signal is true;
-	attribute syn_keep of source_imag : signal is true;
-	attribute syn_keep of source_sop : signal is true;
-	attribute syn_keep of source_valid : signal is true;
-	attribute syn_keep of source_ready : signal is true;
-	attribute syn_keep of source_real : signal is true;			
+	--attribute syn_keep : boolean;
+	--attribute syn_keep of fftpts_in : signal is true;
+	--attribute syn_keep of fftpts_out : signal is true;
+	--attribute syn_keep of inverse : signal is true;
+	--attribute syn_keep of sink_eop : signal is true;
+	--attribute syn_keep of sink_error : signal is true;
+	--attribute syn_keep of sink_imag : signal is true;
+	--attribute syn_keep of sink_ready : signal is true;
+	--attribute syn_keep of sink_real : signal is true;
+	--attribute syn_keep of sink_sop : signal is true;
+	--attribute syn_keep of sink_valid : signal is true;
+	--attribute syn_keep of source_eop : signal is true;
+	--attribute syn_keep of source_error : signal is true;
+	--attribute syn_keep of source_imag : signal is true;
+	--attribute syn_keep of source_sop : signal is true;
+	--attribute syn_keep of source_valid : signal is true;
+	--attribute syn_keep of source_ready : signal is true;
+	--attribute syn_keep of source_real : signal is true;			
 
 	
 
@@ -134,7 +167,10 @@ begin
 
 	input:
 	process(clock, reset) is
-		variable in_phase : integer;
+		variable in_phase : integer range 0 to order - 1 := 0;
+		variable in_window_real: signed (31 downto 0);
+		variable in_window_imag: signed (31 downto 0);	
+
 		begin
 
 			inverse <= (others => '0');
@@ -165,15 +201,29 @@ begin
 					elsif in_phase = order - 1 then
 						sink_eop <= '1';
 					end if;
-
+					
 					sink_valid <= '1';
-					sink_real <= in_iq_bus.real;
-					sink_imag <= in_iq_bus.imag;
 
-					in_phase := in_phase + 1;
+					if fft_window /= BTLE_WINDOW_NONE then
 
-					if in_phase >= order then
+						in_window_real := ((in_iq_bus.real * window_array(fft_window)(in_phase)) + 1024) / 2048;
+						in_window_imag := ((in_iq_bus.imag * window_array(fft_window)(in_phase)) + 1024) / 2048;
+					
+						sink_real <= resize(in_window_real, sink_real'length);
+						sink_imag <= resize(in_window_imag, sink_imag'length);
+
+					else
+					
+						sink_real <= in_iq_bus.real;
+						sink_imag <= in_iq_bus.imag;
+
+					end if;
+
+
+					if in_phase = order - 1 then
 						in_phase := 0;
+					else
+						in_phase := in_phase + 1;
 					end if;
 				end if;
 			end if;
