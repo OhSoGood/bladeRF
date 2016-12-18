@@ -24,6 +24,7 @@ library ieee ;
     use ieee.math_real.all ;
 
 entity fsk_tb is
+	generic(runner_cfg: string);
 end entity ; -- fsk_tb
 
 architecture arch of fsk_tb is

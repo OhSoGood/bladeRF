@@ -27,6 +27,7 @@ library work ;
     use work.nco_p.all ;
 
 entity nco_tb is
+	generic(runner_cfg: string);
 end entity ; -- nco_tb
 
 architecture arch of nco_tb is
