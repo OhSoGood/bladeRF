@@ -126,7 +126,7 @@ architecture ble_bladerf of bladerf is
     end record ;
 
     signal rx_sample_fifo   : fifo_t ;
-    signal tx_sample_fifo   : fifo_t ;
+    --signal tx_sample_fifo   : fifo_t ;
     signal rx_loopback_fifo : fifo_t ;
 
     type meta_fifo_tx_t is record
@@ -316,6 +316,18 @@ architecture ble_bladerf of bladerf is
     signal lms_rx_enable_sig                        : std_logic;
     signal lms_rx_enable_qualified                  : std_logic;
     signal tx_sample_fifo_rempty_untriggered        : std_logic;
+
+    signal xtx_fifo_write   :  std_logic ;
+    signal xtx_fifo_full    :  std_logic ;
+    signal xtx_fifo_empty   :  std_logic ;
+    signal xtx_fifo_usedw   :  std_logic_vector(11 downto 0) ;
+    signal xtx_fifo_data    :  std_logic_vector(31 downto 0) ;
+
+    signal xtx_metafifo_write   :  std_logic ;
+    signal xtx_metafifo_full    :  std_logic ;
+    signal xtx_metafifo_empty   :  std_logic ;
+    signal xtx_metafifo_usedw   :  std_logic_vector(11 downto 0) ;
+    signal xtx_metafifo_data    :  std_logic_vector(31 downto 0) ;
 begin
 
     correction_tx_phase <= signed(correction_tx_phase_gain(31 downto 16));
@@ -476,47 +488,47 @@ begin
       ) ;
 
     -- TX sample fifo
-    tx_sample_fifo.aclr <= tx_reset ;
-    tx_sample_fifo.wclock <= fx3_pclk_pll ;
-    tx_sample_fifo.rclock <= tx_clock ;
-    U_tx_sample_fifo : entity work.tx_fifo
-      port map (
-        aclr                => tx_sample_fifo.aclr,
-        data                => tx_sample_fifo.wdata,
-        rdclk               => tx_sample_fifo.rclock,
-        rdreq               => tx_sample_fifo.rreq,
-        wrclk               => tx_sample_fifo.wclock,
-        wrreq               => tx_sample_fifo.wreq,
-        q                   => tx_sample_fifo.rdata,
-        --rdempty             => tx_sample_fifo.rempty,
-        rdempty             => tx_sample_fifo_rempty_untriggered,
-        rdfull              => tx_sample_fifo.rfull,
-        rdusedw             => tx_sample_fifo.rused,
-        wrempty             => tx_sample_fifo.wempty,
-        wrfull              => tx_sample_fifo.wfull,
-        wrusedw             => tx_sample_fifo.wused
-      );
+    --tx_sample_fifo.aclr <= tx_reset ;
+    --tx_sample_fifo.wclock <= fx3_pclk_pll ;
+    --tx_sample_fifo.rclock <= tx_clock ;
+    --U_tx_sample_fifo : entity work.tx_fifo
+    --  port map (
+    --    aclr                => tx_sample_fifo.aclr,
+    --    data                => tx_sample_fifo.wdata,
+    --    rdclk               => tx_sample_fifo.rclock,
+    --    rdreq               => tx_sample_fifo.rreq,
+    --    wrclk               => tx_sample_fifo.wclock,
+    --    wrreq               => tx_sample_fifo.wreq,
+    --    q                   => tx_sample_fifo.rdata,
+    --    --rdempty             => tx_sample_fifo.rempty,
+    --    rdempty             => tx_sample_fifo_rempty_untriggered,
+    --    rdfull              => tx_sample_fifo.rfull,
+    --    rdusedw             => tx_sample_fifo.rused,
+    --    wrempty             => tx_sample_fifo.wempty,
+    --    wrfull              => tx_sample_fifo.wfull,
+    --    wrusedw             => tx_sample_fifo.wused
+    --  );
 
     -- TX meta fifo
-    tx_meta_fifo.aclr <= tx_reset ;
-    tx_meta_fifo.wclock <= fx3_pclk_pll ;
-    tx_meta_fifo.rclock <= tx_clock ;
-    U_tx_meta_fifo : entity work.tx_meta_fifo
-      port map (
-        aclr                => tx_meta_fifo.aclr,
-        data                => tx_meta_fifo.wdata,
-        rdclk               => tx_meta_fifo.rclock,
-        rdreq               => tx_meta_fifo.rreq,
-        wrclk               => tx_meta_fifo.wclock,
-        wrreq               => tx_meta_fifo.wreq,
-        q                   => tx_meta_fifo.rdata,
-        rdempty             => tx_meta_fifo.rempty,
-        rdfull              => tx_meta_fifo.rfull,
-        rdusedw             => tx_meta_fifo.rused,
-        wrempty             => tx_meta_fifo.wempty,
-        wrfull              => tx_meta_fifo.wfull,
-        wrusedw             => tx_meta_fifo.wused
-      );
+    --tx_meta_fifo.aclr <= tx_reset ;
+    --tx_meta_fifo.wclock <= fx3_pclk_pll ;
+    --tx_meta_fifo.rclock <= tx_clock ;
+    --U_tx_meta_fifo : entity work.tx_meta_fifo
+    --  port map (
+    --    aclr                => tx_meta_fifo.aclr,
+    --    data                => tx_meta_fifo.wdata,
+    --    rdclk               => tx_meta_fifo.rclock,
+    --    rdreq               => tx_meta_fifo.rreq,
+    --    wrclk               => tx_meta_fifo.wclock,
+    --    wrreq               => tx_meta_fifo.wreq,
+    --    q                   => tx_meta_fifo.rdata,
+    --    rdempty             => tx_meta_fifo.rempty,
+    --    rdfull              => tx_meta_fifo.rfull,
+    --    rdusedw             => tx_meta_fifo.rused,
+    --    wrempty             => tx_meta_fifo.wempty,
+    --    wrfull              => tx_meta_fifo.wfull,
+    --    wrusedw             => tx_meta_fifo.wused
+    --  );
 
     -- RX sample fifo
     rx_sample_fifo.wclock <= rx_clock ;
@@ -633,19 +645,30 @@ begin
         ctl_out             =>  fx3_ctl_out,
         ctl_oe              =>  fx3_ctl_oe,
 
-        tx_fifo_write       =>  tx_sample_fifo.wreq,
-        tx_fifo_full        =>  tx_sample_fifo.wfull,
-        tx_fifo_empty       =>  tx_sample_fifo.wempty,
-        tx_fifo_usedw       =>  tx_sample_fifo.wused,
-        tx_fifo_data        =>  tx_sample_fifo.wdata,
+        --tx_fifo_write       =>  tx_sample_fifo.wreq,
+        --tx_fifo_full        =>  tx_sample_fifo.wfull,
+        --tx_fifo_empty       =>  tx_sample_fifo.wempty,
+        --tx_fifo_usedw       =>  tx_sample_fifo.wused,
+        --tx_fifo_data        =>  tx_sample_fifo.wdata,
+
+        tx_fifo_write       =>  xtx_fifo_write,
+        tx_fifo_full        =>  xtx_fifo_full,
+        tx_fifo_empty       =>  xtx_fifo_empty,
+        tx_fifo_usedw       =>  xtx_fifo_usedw,
+        tx_fifo_data        =>  xtx_fifo_data,
 
         tx_timestamp        =>  fx3_timestamp,
-        tx_meta_fifo_write  =>  tx_meta_fifo.wreq,
-        tx_meta_fifo_full   =>  tx_meta_fifo.wfull,
-        tx_meta_fifo_empty  =>  tx_meta_fifo.wempty,
-        tx_meta_fifo_usedw  =>  tx_meta_fifo.wused,
-        tx_meta_fifo_data   =>  tx_meta_fifo.wdata,
+        --tx_meta_fifo_write  =>  tx_meta_fifo.wreq,
+        --tx_meta_fifo_full   =>  tx_meta_fifo.wfull,
+        --tx_meta_fifo_empty  =>  tx_meta_fifo.wempty,
+        --tx_meta_fifo_usedw  =>  tx_meta_fifo.wused,
+        --tx_meta_fifo_data   =>  tx_meta_fifo.wdata,
 
+        tx_meta_fifo_write  =>  xtx_metafifo_write,
+        tx_meta_fifo_full   =>  xtx_metafifo_full,
+        tx_meta_fifo_empty  =>  xtx_metafifo_empty,
+        tx_meta_fifo_usedw  =>  xtx_metafifo_usedw,
+        tx_meta_fifo_data   =>  xtx_metafifo_data,
 
         rx_fifo_read        =>  rx_sample_fifo.rreq,
         rx_fifo_full        =>  rx_sample_fifo.rfull,
@@ -747,56 +770,56 @@ begin
         correction_valid    => correction_valid
       );
 
-    U_fifo_reader : entity work.fifo_reader
-      port map (
-        clock               =>  tx_clock,
-        reset               =>  tx_reset,
-        enable              =>  tx_enable,
+    --U_fifo_reader : entity work.fifo_reader
+    --  port map (
+    --    clock               =>  tx_clock,
+    --    reset               =>  tx_reset,
+    --    enable              =>  tx_enable,
 
-        usb_speed           =>  usb_speed_tx,
-        meta_en             =>  meta_en_tx,
-        timestamp           =>  tx_timestamp,
+    --    usb_speed           =>  usb_speed_tx,
+    --    meta_en             =>  meta_en_tx,
+    --    timestamp           =>  tx_timestamp,
 
-        fifo_empty          =>  tx_sample_fifo.rempty,
-        fifo_usedw          =>  tx_sample_fifo.rused,
-        fifo_data           =>  tx_sample_fifo.rdata,
-        fifo_read           =>  tx_sample_fifo.rreq,
+    --    fifo_empty          =>  tx_sample_fifo.rempty,
+    --    fifo_usedw          =>  tx_sample_fifo.rused,
+    --    fifo_data           =>  tx_sample_fifo.rdata,
+    --    fifo_read           =>  tx_sample_fifo.rreq,
 
-        meta_fifo_empty     =>  tx_meta_fifo.rempty,
-        meta_fifo_usedw     =>  tx_meta_fifo.rused,
-        meta_fifo_data      =>  tx_meta_fifo.rdata,
-        meta_fifo_read      =>  tx_meta_fifo.rreq,
+    --    meta_fifo_empty     =>  tx_meta_fifo.rempty,
+    --    meta_fifo_usedw     =>  tx_meta_fifo.rused,
+    --    meta_fifo_data      =>  tx_meta_fifo.rdata,
+    --    meta_fifo_read      =>  tx_meta_fifo.rreq,
 
-        out_i               =>  tx_sample_raw_i,
-        out_q               =>  tx_sample_raw_q,
-        out_valid           =>  tx_sample_raw_valid,
+    --    out_i               =>  tx_sample_raw_i,
+    --    out_q               =>  tx_sample_raw_q,
+    --    out_valid           =>  tx_sample_raw_valid,
 
-        underflow_led       =>  tx_underflow_led,
-        underflow_count     =>  tx_underflow_count,
-        underflow_duration  =>  x"ffff"
-      ) ;
+    --    underflow_led       =>  tx_underflow_led,
+    --    underflow_count     =>  tx_underflow_count,
+    --    underflow_duration  =>  x"ffff"
+    --  ) ;
 
-    U_tx_iq_correction : entity work.iq_correction(tx)
-      generic map (
-        INPUT_WIDTH         => tx_sample_raw_i'length
-      ) port map (
-        reset               => tx_reset,
-        clock               => tx_clock,
+    --U_tx_iq_correction : entity work.iq_correction(tx)
+    --  generic map (
+    --    INPUT_WIDTH         => tx_sample_raw_i'length
+    --  ) port map (
+    --    reset               => tx_reset,
+    --    clock               => tx_clock,
 
-        in_real             => tx_sample_raw_i,
-        in_imag             => tx_sample_raw_q,
-        in_valid            => tx_sample_raw_valid,
+    --    in_real             => tx_sample_raw_i,
+    --    in_imag             => tx_sample_raw_q,
+    --    in_valid            => tx_sample_raw_valid,
 
-        out_real            => tx_sample_i,
-        out_imag            => tx_sample_q,
-        out_valid           => tx_sample_valid,
+    --    out_real            => tx_sample_i,
+    --    out_imag            => tx_sample_q,
+    --    out_valid           => tx_sample_valid,
 
-        dc_real             => FPGA_DC_CORRECTION,
-        dc_imag             => FPGA_DC_CORRECTION,
-        gain                => correction_tx_gain,
-        phase               => correction_tx_phase,
-        correction_valid    => correction_valid
-      );
+    --    dc_real             => FPGA_DC_CORRECTION,
+    --    dc_imag             => FPGA_DC_CORRECTION,
+    --    gain                => correction_tx_gain,
+    --    phase               => correction_tx_phase,
+    --    correction_valid    => correction_valid
+    --  );
 
     -- RX Trigger
     rxtrig : entity work.trigger(async)
@@ -838,7 +861,8 @@ begin
         trigger_in      => tx_trigger_line,
         trigger_out     => tx_trigger_line,
         signal_in       => tx_sample_fifo_rempty_untriggered,
-        signal_out      => tx_sample_fifo.rempty
+        --signal_out      => tx_sample_fifo.rempty
+        signal_out      => xtx_fifo_empty
       );
 
     tx_trigger_arm_rb    <= tx_trigger_arm;
