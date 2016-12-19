@@ -276,46 +276,49 @@ begin
 
 	fft_based: if num_channels > 1 generate
 
-		rx_bank : for i in 0 to num_channels - 1 
-		generate
-		
-			ch_rx: entity work.btle_channel_receiver
-				generic map (
-					channel_index => ch_idx_array(i), 
-					samples_per_bit => samples_per_bit
-				)
-				port map (
-					clock 						=> 	clock,
-					reset 						=> 	reset,
+		rx_bank : for i in 0 to num_channels - 1 generate
 
-					in_real 					=> 	ch_in_real,
-					in_imag 					=> 	ch_in_imag,
-					in_valid 					=> 	ch_in_valid(i),
-					in_timestamp 				=>	rx_timestamp,
+			valid: if ch_idx_array(i) /= 40 generate
+			
+				ch_rx: entity work.btle_channel_receiver
+					generic map (
+						channel_index => ch_idx_array(i), 
+						samples_per_bit => samples_per_bit
+					)
+					port map (
+						clock 						=> 	clock,
+						reset 						=> 	reset,
 
-					in_demod_seq 				=> 	ch_in_bit,
-					in_demod_valid 				=>	ch_in_bit_valid(i),
+						in_real 					=> 	ch_in_real,
+						in_imag 					=> 	ch_in_imag,
+						in_valid 					=> 	ch_in_valid(i),
+						in_timestamp 				=>	rx_timestamp,
+
+						in_demod_seq 				=> 	ch_in_bit,	
+						in_demod_valid 				=>	ch_in_bit_valid(i),
 					
-					in_cts 						=> 	ch_in_cts(i),
-					out_rts 					=>	ch_out_rts(i),
+						in_cts 						=> 	ch_in_cts(i),
+						out_rts 					=>	ch_out_rts(i),
 
-					in_ch_info.valid 			=>	ch_in_info_valid(i),
-					in_ch_info.adv				=>	ch_in_info.adv,
-					in_ch_info.ch_idx 			=>	ch_in_info.ch_idx,
+						in_ch_info.valid 			=>	ch_in_info_valid(i),
+						in_ch_info.adv				=>	ch_in_info.adv,
+						in_ch_info.ch_idx 			=>	ch_in_info.ch_idx,
 					
-					in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(i),
-					in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
-					in_aa_detect.crc_init 		=> 	ch_in_aa_detect_results.crc_init,
+						in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(i),
+						
+						in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
+						in_aa_detect.crc_init 		=> 	ch_in_aa_detect_results.crc_init,
 
-					in_cts_dch					=>	ch_in_cts_dch(i),
-					out_rts_dch					=>	ch_out_rts_dch(i),
-					out_dch_config				=> 	ch_out_dch_config(i),
+						in_cts_dch					=>	ch_in_cts_dch(i),
+						out_rts_dch					=>	ch_out_rts_dch(i),
+						out_dch_config				=> 	ch_out_dch_config(i),
 
-					out_real 					=> 	ch_out_real(i),
-					out_imag 					=> 	ch_out_imag(i),
-					out_valid 					=> 	ch_out_valid(i)
-				);	
+						out_real 					=> 	ch_out_real(i),
+						out_imag 					=> 	ch_out_imag(i),
+						out_valid 					=> 	ch_out_valid(i)
+					);	
 
+			end generate;
 		end generate;
 
     	fft : entity work.btle_fft_streamer
