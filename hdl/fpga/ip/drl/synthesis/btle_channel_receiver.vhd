@@ -268,7 +268,6 @@ begin
 						if in_cts_dch = '1' then
 
 							out_dch_config.valid <= '1';
-							--out_dch_config.crc_init <= reverse_any_vector(payload_bits(4)(31 downto 8));
 							out_dch_config.crc_init <= payload_bits(4)(31 downto 8);
 
 							if payload_bits(3)(31) = '1' then
@@ -414,7 +413,8 @@ begin
 								-- -> No point decoding the payload as have no reliable idea how long it is
 								-- -> Start reporting with known information.
 								
-								state := STATE_START_REPORT;
+								--state := STATE_START_REPORT;
+								state := STATE_WAIT_DETECT;
 
 							end if;
 
@@ -424,7 +424,11 @@ begin
 
 						if crc_decoded = '1' then
 
-							state := STATE_START_REPORT;
+							if crc_valid = '1' then
+							    state := STATE_START_REPORT;
+							else
+								state := STATE_WAIT_DETECT;
+							end if;
 							
 						else
 							if dew_to_modules_valid = '1' then
