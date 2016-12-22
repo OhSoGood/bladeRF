@@ -71,12 +71,14 @@ begin
 
 		variable sample_memory: iq_mem_array_t;
 		variable in_phase: integer range 0 to 15;
+		variable wait_sync : boolean;
 
 		begin
 			if reset = '1' then
 
 				next_in <= '0';
 				in_phase := 0;
+				wait_sync := true;
 
 				for i in 0 to order - 1 loop
 					sample_memory(i).real := to_signed(0, 16);
@@ -99,6 +101,7 @@ begin
 				end if;
 
 				if in_iq_bus.valid = '1' then
+					wait_sync := false;
 					sample_memory(in_phase).real := in_iq_bus.real;
 					sample_memory(in_phase).imag := in_iq_bus.imag;
 				else
@@ -106,11 +109,13 @@ begin
 					sample_memory(in_phase).imag := to_signed(0, 16);
 				end if;
 
-				
-				if in_phase = order - 1 then
-					in_phase := 0;
-				else
-					in_phase := in_phase + 1;
+
+				if wait_sync = false then
+					if in_phase = order - 1 then
+						in_phase := 0;
+					else
+						in_phase := in_phase + 1;
+					end if;
 				end if;
 
 			end if;
@@ -120,16 +125,59 @@ begin
 
 	fft_output:
 	process(clock, reset) is
-		begin
+
+		variable sample_memory: iq_mem_array_t;
+		variable out_phase: integer range 0 to 15;
+		variable wait_sync : boolean;
+
+		begin	
 			if reset = '1' then
 
-				out_iq_bus.real <= (others => '0');
-				out_iq_bus.imag <= (others => '0');	
-				out_iq_bus.timeslot <= (others => '0');
+				out_phase := 0;
+				wait_sync := true;
+
+				out_iq_bus <= ((others => '0'), (others => '0'), '0', (others => '0') );
+
+				for i in 0 to order - 1 loop
+					sample_memory(i).real := to_signed(0, 16);
+					sample_memory(i).imag := to_signed(0, 16);
+				end loop;
 
 			elsif rising_edge(clock) then
 
+				out_iq_bus <= ((others => '0'), (others => '0'), '0', (others => '0') );
 
+				if wait_sync = false then
+
+					if out_phase < order / 2 then
+
+						sample_memory(2 * out_phase).real := out_real_0;
+						sample_memory(2 * out_phase).imag := out_imag_0;
+						sample_memory((2 * out_phase) + 1).real := out_real_1;
+						sample_memory((2 * out_phase) + 1).imag := out_imag_1;
+
+					end if;
+					
+
+					out_iq_bus.real <= shift_right(sample_memory(out_phase).real, 1);
+					out_iq_bus.imag <= shift_right(sample_memory(out_phase).imag, 1);
+
+					out_iq_bus.valid <= '1';
+					out_iq_bus.timeslot <= to_unsigned(out_phase, out_iq_bus.timeslot'length);
+
+					if out_phase = order - 1 then
+						out_phase := 0;
+						wait_sync := true;
+					else
+						out_phase := out_phase + 1;
+					end if;
+					
+				end if;
+
+				if next_out = '1' then
+					out_phase := 0;
+					wait_sync := false;
+				end if;
 
 			end if;
 		end
