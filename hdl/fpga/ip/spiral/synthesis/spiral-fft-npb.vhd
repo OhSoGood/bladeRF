@@ -23,7 +23,7 @@ entity spiral_fft is
 end entity spiral_fft;
 
 architecture rtl of spiral_fft is
-	component dft_top is
+	component dft_npb is
 		port (
 			clk          : in  std_logic                     := '0';
 			reset	     : in  std_logic                     := '0';
@@ -39,11 +39,11 @@ architecture rtl of spiral_fft is
 			x3    		 : in  signed(15 downto 0) := (others => '0');
 			y3    		 : out signed(15 downto 0)
 		);
-	end component dft_top;
+	end component dft_npb;
 
 begin
 
-	u_dft_top : component dft_top
+	u_dft_top : component dft_npb
 		port map (
 			clk          => clk,
 			reset        => reset,

@@ -102,7 +102,7 @@ module dft_testbench();
 
    // Instantiate top-level module of core 'X' signals are system inputs
    // and 'Y' signals are system outputs
-   dft_top dft_top_instance (.clk(clk), .reset(reset), .next(next), .next_out(next_out),
+   dft_npb dft_top_instance (.clk(clk), .reset(reset), .next(next), .next_out(next_out),
     .X0(X0), .Y0(Y0),
     .X1(X1), .Y1(Y1),
     .X2(X2), .Y2(Y2),
@@ -221,7 +221,7 @@ endmodule
 // Latency: 112
 // Gap: 8
 // module_name_is:dft_top
-module dft_top(clk, reset, next_i, next_out,
+module dft_npb(clk, reset, next_i, next_out,
    X0, Y0,
    X1, Y1,
    X2, Y2,
