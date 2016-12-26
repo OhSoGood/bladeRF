@@ -279,7 +279,7 @@ begin
 		rx_bank : for i in 0 to num_channels - 1 
 		generate
 
-			valid: if ch_idx_array(i) = 37 generate
+			valid: if ch_idx_array(i) /= 40 generate
 		
 				ch_rx: entity work.btle_channel_receiver
 					generic map (

@@ -165,11 +165,11 @@ begin
 
 					end if;
 					
-					--out_iq_bus.real <= shift_right(sample_memory(out_phase).real, 1);
-					--out_iq_bus.imag <= shift_right(sample_memory(out_phase).imag, 1);
+					out_iq_bus.real <= shift_right(sample_memory(out_phase).real, 1);
+					out_iq_bus.imag <= shift_right(sample_memory(out_phase).imag, 1);
 
-					out_iq_bus.real <= sample_memory(out_phase).real;
-					out_iq_bus.imag <= sample_memory(out_phase).imag;
+					--out_iq_bus.real <= sample_memory(out_phase).real;
+					--out_iq_bus.imag <= sample_memory(out_phase).imag;
 					out_iq_bus.timeslot <= to_unsigned(out_phase, out_iq_bus.timeslot'length);
 					out_iq_bus.valid <= '1';
 					
