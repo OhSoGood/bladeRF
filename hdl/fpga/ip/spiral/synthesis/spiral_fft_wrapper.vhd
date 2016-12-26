@@ -70,15 +70,17 @@ begin
 	process(clock, reset) is
 
 		variable sample_memory: iq_mem_array_t;
-		variable in_phase: integer range 0 to 15;
-		variable wait_sync : boolean;
+		variable write_phase: integer range 0 to 15;
+		variable read_phase: integer range 0 to 15;
+		variable feed_fft : boolean;
 
 		begin
 			if reset = '1' then
 
 				next_in <= '0';
-				in_phase := 0;
-				wait_sync := true;
+				read_phase := 0;
+				write_phase := 0;
+				feed_fft := false;
 
 				for i in 0 to order - 1 loop
 					sample_memory(i).real := to_signed(0, 16);
@@ -94,27 +96,33 @@ begin
 
 				next_in <= '0';
 
-				if in_phase = order - 1 then
-					next_in <= '1';
-				end if;
+				if feed_fft = true and read_phase < order then 
 
+						in_real_0 <= sample_memory(read_phase).real;
+						in_imag_0 <= sample_memory(read_phase).imag;
+						in_real_1 <= sample_memory(read_phase + 1).real;
+						in_imag_1 <= sample_memory(read_phase + 1).imag;
+
+						if read_phase /= order - 2 then
+							read_phase := read_phase + 2;
+						else
+							feed_fft := false;
+							read_phase := 0;
+						end if;
+				end if;
+					
 				if in_iq_bus.valid = '1' then
 
-					sample_memory(in_phase).real := in_iq_bus.real;
-					sample_memory(in_phase).imag := in_iq_bus.imag;
+					sample_memory(write_phase).real := in_iq_bus.real;
+					sample_memory(write_phase).imag := in_iq_bus.imag;
 
-					if in_phase < order / 2 then 
-
-						in_real_0 <= sample_memory(2 * in_phase).real;
-						in_imag_0 <= sample_memory(2 * in_phase).imag;
-						in_real_1 <= sample_memory((2 * in_phase) + 1).real;
-						in_imag_1 <= sample_memory((2 * in_phase) + 1).imag;
-					end if;
-
-					if in_phase = order - 1 then
-						in_phase := 0;
+					if write_phase = order - 1 then
+						read_phase := 0;
+						write_phase := 0;
+						feed_fft := true;
+						next_in <= '1';
 					else
-						in_phase := in_phase + 1;
+						write_phase := write_phase + 1;
 					end if;				
 				end if;
 			end if;
@@ -167,7 +175,7 @@ begin
 					
 					if out_phase = order - 1 then
 						out_phase := 0;
-					--	wait_sync := true;
+						wait_sync := true;
 					else
 						out_phase := out_phase + 1;
 					end if;
