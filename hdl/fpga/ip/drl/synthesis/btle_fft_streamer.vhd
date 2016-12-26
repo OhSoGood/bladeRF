@@ -219,7 +219,6 @@ begin
 
 					end if;
 
-
 					if in_phase = order - 1 then
 						in_phase := 0;
 					else

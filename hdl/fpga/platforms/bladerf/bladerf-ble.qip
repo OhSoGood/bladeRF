@@ -40,6 +40,8 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_crc.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_mapper.vhd]]
 
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-fft-npb.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral_fft_wrapper.vhd]]
 set_global_assignment -name VERILOG_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-dft-no-patent-block.v]]
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/fx3_gpif.vhd]]

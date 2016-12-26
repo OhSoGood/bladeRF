@@ -18,6 +18,7 @@ dpram_path = join(root, "..\\altera\\dpram");
 
 altera_sim_path = "C:\\altera\\15.0\\quartus\\eda\\sim_lib\\"
 
+spiral_path = "..\\spiral\synthesis\\"
 
 ui = VUnit.from_argv()
 ui.add_osvvm()
@@ -43,10 +44,11 @@ btle = ui.add_library("btle")
 
 btle.add_source_files(join(src_path, "*.vhd"))
 btle.add_source_files(join(tb_path, "*.vhd"))
-btle.add_source_files(join(fft_path, "fft.vhd"))
-btle.add_source_files(join(fft_sim_path, "*.sv"))
+#btle.add_source_files(join(fft_path, "fft.vhd"))
+#btle.add_source_files(join(fft_sim_path, "*.sv"))
 btle.add_source_files(join(dpram_path, "dpram.vhd"))
-btle.add_source_files(join(dpram_path, "dpram_syn.v"))
-
+#btle.add_source_files(join(dpram_path, "dpram_syn.v"))
+btle.add_source_files(join(spiral_path, "*.sv"))
+btle.add_source_files(join(spiral_path, "*.vhd"))
 ui.main()
 
