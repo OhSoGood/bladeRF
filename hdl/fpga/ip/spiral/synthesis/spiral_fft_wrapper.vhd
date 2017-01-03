@@ -8,13 +8,14 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.btle_common.all;
 
+use work.btle_common.all;
+use work.btle_window.all;
 
 entity spiral_fft_wrapper is
 	generic (
-		order : integer := 16
-		--fft_window: integer := BTLE_WINDOW_NONE
+		order : integer := 16;
+		fft_window: window_type_t := BTLE_WINDOW_NONE
 	);
 	port(
 		clock:			in std_logic;
@@ -113,9 +114,9 @@ begin
 					
 				if in_iq_bus.valid = '1' then
 
-					sample_memory(write_phase).real := in_iq_bus.real;
-					sample_memory(write_phase).imag := in_iq_bus.imag;
-
+					sample_memory(write_phase).real:= btle_apply_window(fft_window, in_iq_bus.real, write_phase);
+					sample_memory(write_phase).imag:= btle_apply_window(fft_window, in_iq_bus.imag, write_phase);
+					
 					if write_phase = order - 1 then
 						read_phase := 0;
 						write_phase := 0;
@@ -168,8 +169,6 @@ begin
 					out_iq_bus.real <= shift_right(sample_memory(out_phase).real, 1);
 					out_iq_bus.imag <= shift_right(sample_memory(out_phase).imag, 1);
 
-					--out_iq_bus.real <= sample_memory(out_phase).real;
-					--out_iq_bus.imag <= sample_memory(out_phase).imag;
 					out_iq_bus.timeslot <= to_unsigned(out_phase, out_iq_bus.timeslot'length);
 					out_iq_bus.valid <= '1';
 					

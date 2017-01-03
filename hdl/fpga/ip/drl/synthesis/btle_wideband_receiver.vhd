@@ -8,6 +8,7 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 use work.btle_common.all;
+use work.btle_window.all;
 
 entity btle_wideband_receiver is
 	generic(
@@ -323,8 +324,8 @@ begin
 		fft : entity work.spiral_fft_wrapper			
 --    	fft : entity work.btle_fft_streamer
 			generic map (
-				order => num_channels
---				fft_window => BTLE_WINDOW_HAMMING
+				order => num_channels,
+				fft_window => BTLE_WINDOW_HAMMING
 			)
     		port map (
 				clock 			=> clock,

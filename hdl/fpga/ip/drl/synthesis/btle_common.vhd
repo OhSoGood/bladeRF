@@ -9,10 +9,6 @@ use ieee.numeric_std.all;
 
 package btle_common is
 
-	constant BTLE_WINDOW_HANNING : integer := 0;
-	constant BTLE_WINDOW_HAMMING : integer := 1;
-	constant BTLE_WINDOW_NONE : integer := 2;
-
 	constant BTLE_NUM_SUBBANDS : integer := 3;
 	constant BTLE_FFT_SIZE : integer := 16;
 	constant BTLE_SAMPLES_PER_SYMBOL : integer := 2;
