@@ -48,7 +48,7 @@ btle.add_source_files(join(tb_path, "*.vhd"))
 #btle.add_source_files(join(fft_sim_path, "*.sv"))
 btle.add_source_files(join(dpram_path, "dpram.vhd"))
 #btle.add_source_files(join(dpram_path, "dpram_syn.v"))
-btle.add_source_files(join(spiral_path, "*.sv"))
+btle.add_source_files(join(spiral_path, "*.v"))
 btle.add_source_files(join(spiral_path, "*.vhd"))
 ui.main()
 
