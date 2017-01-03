@@ -7,7 +7,7 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity spiral_fft is
+entity spiral_fft_patent is
 	port (
 		clk          : in  std_logic                     := '0';
 		reset	     : in  std_logic                     := '0';
@@ -23,10 +23,10 @@ entity spiral_fft is
 		x3    		 : in  signed(15 downto 0) := (others => '0');
 		y3    		 : out signed(15 downto 0)
 	);
-end entity spiral_fft;
+end entity spiral_fft_patent;
 
-architecture rtl of spiral_fft is
-	component dft_npb is
+architecture rtl of spiral_fft_patent is
+	component dft_pb is
 		port (
 			clk          : in  std_logic                     := '0';
 			reset	     : in  std_logic                     := '0';
@@ -42,11 +42,11 @@ architecture rtl of spiral_fft is
 			x3    		 : in  signed(15 downto 0) := (others => '0');
 			y3    		 : out signed(15 downto 0)
 		);
-	end component dft_npb;
+	end component dft_pb;
 
 begin
 
-	u_dft_top : component dft_npb
+	u_dft_top : component dft_pb
 		port map (
 			clk          => clk,
 			reset        => reset,

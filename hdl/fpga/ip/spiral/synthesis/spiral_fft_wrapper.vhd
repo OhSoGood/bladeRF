@@ -50,7 +50,7 @@ architecture rtl of spiral_fft_wrapper is
 
 begin
 
-	u_spiral_fft: entity work.spiral_fft
+	u_spiral_fft: entity work.spiral_fft_patent
 	port map (
 		clk => clock,
 		reset => reset,
