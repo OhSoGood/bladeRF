@@ -32,11 +32,11 @@ architecture rtl of btle_fft_streamer is
 
 begin
 
-altera_fft:  
+fft_selection:  
 
 	if fft_type = BTLE_FFT_ALTERA generate
 
-		fft : entity work.btle_fft_altera			
+		fft_altera : entity work.btle_fft_altera			
 			generic map (
 				order => order,
 				fft_window => fft_window
@@ -51,7 +51,7 @@ altera_fft:
 
 	else generate
 	
-		fft : entity work.btle_fft_spiral			
+		fft_spiral : entity work.btle_fft_spiral			
 			generic map (
 				order => order,
 				fft_window => fft_window
