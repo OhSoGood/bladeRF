@@ -8,6 +8,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 use work.btle_common.all;
+use work.btle_fft.all;
 
 entity btle_fft_streamer_tb is
 	generic(runner_cfg: string);
@@ -42,7 +43,7 @@ begin
 	);
 
 	dut: entity work.btle_fft_streamer
-	generic map (order => 16)
+	generic map (order => 16, fft_type => BTLE_FFT_ALTERA)
 	port map (
 		clock => clock,
 		reset => reset,

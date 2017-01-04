@@ -1,5 +1,5 @@
 --
--- (c) Distributed Radio Limited 2016
+-- (c) Distributed Radio Limited 2016-2017
 --     steve@distributedradio.com
 --
 
@@ -24,7 +24,6 @@ package btle_window is
 	function btle_apply_window (	in_win:    	in window_type_t; 
 									in_sample: 	in sample_t; 
 									in_phase : 	in window_phase_t ) return sample_t;
-	
 end;
 
 

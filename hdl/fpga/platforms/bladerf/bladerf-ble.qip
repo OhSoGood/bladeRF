@@ -9,7 +9,7 @@ set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/a
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/tx_fifo/tx_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/tx_meta_fifo/tx_meta_fifo.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/rx_meta_fifo/rx_meta_fifo.qip]]
-#set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/fft/fft/synthesis/fft.qip]]
+set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/fft/fft/synthesis/fft.qip]]
 set_global_assignment -name QIP_FILE [file normalize [file join $here ../../ip/altera/dpram/dpram.qip]]
 
 # Explicitly include Nios mem_init
@@ -33,19 +33,23 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_complex.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_matched.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_aa_detector.vhd]]
-#set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_dpram.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_dewhitener.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_adv_header.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_crc.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_mapper.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_window.vhd]]
 
-#set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-fft-npb.vhd]]
-#set_global_assignment -name VERILOG_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-dft-no-patent-block.v]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_altera.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_spiral.vhd]]
+
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-fft-pb.vhd]]
 set_global_assignment -name VERILOG_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-dft-patent.v]]
+#set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-fft-npb.vhd]]
+#set_global_assignment -name VERILOG_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-dft-no-patent-block.v]]
 
-set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral_fft_wrapper.vhd]]
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/fx3_gpif.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here vhdl/bladerf-ble.vhd]]

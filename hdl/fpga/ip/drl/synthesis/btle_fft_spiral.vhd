@@ -12,7 +12,7 @@ use ieee.numeric_std.all;
 use work.btle_common.all;
 use work.btle_window.all;
 
-entity spiral_fft_wrapper is
+entity btle_fft_spiral is
 	generic (
 		order : integer := 16;
 		fft_window: window_type_t := BTLE_WINDOW_NONE
@@ -24,10 +24,10 @@ entity spiral_fft_wrapper is
 		in_iq_bus:		in iq_bus_t;
 		out_iq_bus:		out tdm_iq_bus_t
 	);
-end spiral_fft_wrapper;
+end btle_fft_spiral;
 
 
-architecture rtl of spiral_fft_wrapper is
+architecture rtl of btle_fft_spiral is
 
 	type iq_mem_item_t is record
 		real: 		sample_t;

@@ -9,6 +9,7 @@ use IEEE.numeric_std.all;
 
 use work.btle_common.all;
 use work.btle_window.all;
+use work.btle_fft.all;
 
 entity btle_wideband_receiver is
 	generic(
@@ -321,10 +322,10 @@ begin
 			end generate;
 		end generate;
 
-		fft : entity work.spiral_fft_wrapper			
---    	fft : entity work.btle_fft_streamer
+		fft : entity work.btle_fft_streamer			
 			generic map (
 				order => num_channels,
+				fft_type => BTLE_FFT_SPIRAL,
 				fft_window => BTLE_WINDOW_HAMMING
 			)
     		port map (
@@ -355,7 +356,6 @@ begin
 			end
 		process;
 
-
 		fft_to_demod:
 		process(clock, reset) is
 			begin
@@ -373,11 +373,6 @@ begin
 				end if;
 			end
 		process;	
-
-
-
-
-
 
 		aa_to_ch:
 		process(clock, reset) is
