@@ -17,6 +17,30 @@
          type = "String";
       }
    }
+   element btle_connect
+   {
+      datum _sortIndex
+      {
+         value = "19";
+         type = "int";
+      }
+   }
+   element btle_control
+   {
+      datum _sortIndex
+      {
+         value = "18";
+         type = "int";
+      }
+   }
+   element btle_crc
+   {
+      datum _sortIndex
+      {
+         value = "20";
+         type = "int";
+      }
+   }
    element command_uart
    {
       datum _sortIndex
@@ -46,22 +70,6 @@
       datum baseAddress
       {
          value = "36928";
-         type = "String";
-      }
-   }
-   element vctcxo_tamer_0
-   {
-      datum _sortIndex
-      {
-         value = "15";
-         type = "int";
-      }
-   }
-   element vctcxo_tamer_0.avalon_slave_0
-   {
-      datum baseAddress
-      {
-         value = "37632";
          type = "String";
       }
    }
@@ -117,7 +125,7 @@
    {
       datum _sortIndex
       {
-         value = "16";
+         value = "17";
          type = "int";
       }
    }
@@ -205,7 +213,7 @@
    {
       datum _sortIndex
       {
-         value = "15";
+         value = "16";
          type = "int";
       }
    }
@@ -273,6 +281,22 @@
          type = "String";
       }
    }
+   element vctcxo_tamer_0
+   {
+      datum _sortIndex
+      {
+         value = "15";
+         type = "int";
+      }
+   }
+   element vctcxo_tamer_0.avalon_slave_0
+   {
+      datum baseAddress
+      {
+         value = "37632";
+         type = "String";
+      }
+   }
    element xb_gpio
    {
       datum _sortIndex
@@ -308,14 +332,14 @@
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="HANDSHAKE" />
- <parameter name="device" value="EP4CE40F23C8" />
+ <parameter name="device" value="EP4CE115F23C8" />
  <parameter name="deviceFamily" value="Cyclone IV E" />
  <parameter name="deviceSpeedGrade" value="8" />
  <parameter name="fabricMode" value="QSYS" />
  <parameter name="generateLegacySim" value="false" />
  <parameter name="generationId" value="0" />
  <parameter name="globalResetBus" value="false" />
- <parameter name="hdlLanguage" value="Verilog" />
+ <parameter name="hdlLanguage" value="VERILOG" />
  <parameter name="hideFromIPCatalog" value="false" />
  <parameter name="lockedInterfaceDefinition" value="" />
  <parameter name="maxAdditionalLatency" value="1" />
@@ -326,6 +350,21 @@
  <parameter name="timeStamp" value="0" />
  <parameter name="useTestBenchNamingPattern" value="false" />
  <instanceScript></instanceScript>
+ <interface
+   name="btle_connect"
+   internal="btle_connect.external_connection"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="btle_control"
+   internal="btle_control.external_connection"
+   type="conduit"
+   dir="end" />
+ <interface
+   name="btle_crc"
+   internal="btle_crc.external_connection"
+   type="conduit"
+   dir="end" />
  <interface name="clk" internal="system_clock.clk_in" type="clock" dir="end" />
  <interface name="command" internal="command_uart.rs232" type="conduit" dir="end" />
  <interface
@@ -346,11 +385,6 @@
  <interface
    name="gpio"
    internal="control.external_connection"
-   type="conduit"
-   dir="end" />
- <interface
-   name="vctcxo_tamer"
-   internal="vctcxo_tamer_0.conduit_end"
    type="conduit"
    dir="end" />
  <interface
@@ -385,6 +419,11 @@
    type="conduit"
    dir="end" />
  <interface
+   name="vctcxo_tamer"
+   internal="vctcxo_tamer_0.conduit_end"
+   type="conduit"
+   dir="end" />
+ <interface
    name="xb_gpio"
    internal="xb_gpio.external_connection"
    type="conduit"
@@ -394,6 +433,56 @@
    internal="xb_gpio_dir.external_connection"
    type="conduit"
    dir="end" />
+ <module
+   name="btle_connect"
+   kind="altera_avalon_pio"
+   version="15.0"
+   enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="80000000" />
+  <parameter name="direction" value="Output" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="32" />
+ </module>
+ <module
+   name="btle_control"
+   kind="altera_avalon_pio"
+   version="15.0"
+   enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="80000000" />
+  <parameter name="direction" value="Output" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="32" />
+ </module>
+ <module name="btle_crc" kind="altera_avalon_pio" version="15.0" enabled="1">
+  <parameter name="bitClearingEdgeCapReg" value="false" />
+  <parameter name="bitModifyingOutReg" value="false" />
+  <parameter name="captureEdge" value="false" />
+  <parameter name="clockRate" value="80000000" />
+  <parameter name="direction" value="Output" />
+  <parameter name="edgeType" value="RISING" />
+  <parameter name="generateIRQ" value="false" />
+  <parameter name="irqType" value="LEVEL" />
+  <parameter name="resetValue" value="0" />
+  <parameter name="simDoTestBenchWiring" value="false" />
+  <parameter name="simDrivenValue" value="0" />
+  <parameter name="width" value="24" />
+ </module>
  <module name="command_uart" kind="command_uart" version="1.0" enabled="1" />
  <module name="control" kind="altera_avalon_pio" version="15.0" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
@@ -409,7 +498,6 @@
   <parameter name="simDrivenValue" value="0" />
   <parameter name="width" value="32" />
  </module>
- <module name="vctcxo_tamer_0" kind="vctcxo_tamer" version="1.0" enabled="1" />
  <module
    name="iq_corr_rx_phase_gain"
    kind="altera_avalon_pio"
@@ -473,7 +561,7 @@
  <module name="nios2" kind="altera_nios2_gen2" version="15.0" enabled="1">
   <parameter name="AUTO_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_CLK_RESET_DOMAIN" value="1" />
-  <parameter name="AUTO_DEVICE" value="EP4CE40F23C8" />
+  <parameter name="AUTO_DEVICE" value="EP4CE115F23C8" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="8" />
   <parameter name="bht_ramBlockType" value="Automatic" />
   <parameter name="breakOffset" value="32" />
@@ -490,7 +578,7 @@
   <parameter name="dataAddrWidth" value="16" />
   <parameter name="dataMasterHighPerformanceAddrWidth" value="1" />
   <parameter name="dataMasterHighPerformanceMapParam" value="" />
-  <parameter name="dataSlaveMapParam"><![CDATA[<address-map><slave name='ram.s1' start='0x4000' end='0x8000' /><slave name='nios2.debug_mem_slave' start='0x8800' end='0x9000' /><slave name='control.s1' start='0x9040' end='0x9060' /><slave name='peripheral_spi.spi_control_port' start='0x9060' end='0x9080' /><slave name='xb_gpio_dir.s1' start='0x90A0' end='0x90B0' /><slave name='xb_gpio.s1' start='0x90B0' end='0x90C0' /><slave name='iq_corr_tx_phase_gain.s1' start='0x90C0' end='0x90D0' /><slave name='iq_corr_rx_phase_gain.s1' start='0x90D0' end='0x90E0' /><slave name='opencores_i2c.bladerf_oc_i2c_master' start='0x90F0' end='0x90F8' /><slave name='jtag_uart.avalon_jtag_slave' start='0x9100' end='0x9108' /><slave name='command_uart.avalon_slave' start='0x9120' end='0x9140' /><slave name='tx_tamer.avalon_slave_0' start='0x9140' end='0x9160' /><slave name='rx_tamer.avalon_slave_0' start='0x9160' end='0x9180' /><slave name='lms_spi.avalon_slave_0' start='0x9200' end='0x9300' /><slave name='vctcxo_tamer_0.avalon_slave_0' start='0x9300' end='0x9400' /><slave name='rx_trigger_ctl.s1' start='0x9400' end='0x9420' /><slave name='tx_trigger_ctl.s1' start='0x9420' end='0x9440' /></address-map>]]></parameter>
+  <parameter name="dataSlaveMapParam"><![CDATA[<address-map><slave name='ram.s1' start='0x4000' end='0x8000' /><slave name='nios2.debug_mem_slave' start='0x8800' end='0x9000' /><slave name='control.s1' start='0x9040' end='0x9060' /><slave name='peripheral_spi.spi_control_port' start='0x9060' end='0x9080' /><slave name='xb_gpio_dir.s1' start='0x90A0' end='0x90B0' /><slave name='xb_gpio.s1' start='0x90B0' end='0x90C0' /><slave name='iq_corr_tx_phase_gain.s1' start='0x90C0' end='0x90D0' /><slave name='iq_corr_rx_phase_gain.s1' start='0x90D0' end='0x90E0' /><slave name='opencores_i2c.bladerf_oc_i2c_master' start='0x90F0' end='0x90F8' /><slave name='jtag_uart.avalon_jtag_slave' start='0x9100' end='0x9108' /><slave name='command_uart.avalon_slave' start='0x9120' end='0x9140' /><slave name='tx_tamer.avalon_slave_0' start='0x9140' end='0x9160' /><slave name='rx_tamer.avalon_slave_0' start='0x9160' end='0x9180' /><slave name='btle_control.s1' start='0x9180' end='0x9190' /><slave name='btle_connect.s1' start='0x9190' end='0x91A0' /><slave name='btle_crc.s1' start='0x91A0' end='0x91B0' /><slave name='lms_spi.avalon_slave_0' start='0x9200' end='0x9300' /><slave name='vctcxo_tamer_0.avalon_slave_0' start='0x9300' end='0x9400' /><slave name='rx_trigger_ctl.s1' start='0x9400' end='0x9420' /><slave name='tx_trigger_ctl.s1' start='0x9420' end='0x9440' /></address-map>]]></parameter>
   <parameter name="data_master_high_performance_paddr_base" value="0" />
   <parameter name="data_master_high_performance_paddr_size" value="0" />
   <parameter name="data_master_paddr_base" value="0" />
@@ -746,6 +834,7 @@
   <parameter name="simDrivenValue" value="0" />
   <parameter name="width" value="8" />
  </module>
+ <module name="vctcxo_tamer_0" kind="vctcxo_tamer" version="1.0" enabled="1" />
  <module name="xb_gpio" kind="altera_avalon_pio" version="15.0" enabled="1">
   <parameter name="bitClearingEdgeCapReg" value="false" />
   <parameter name="bitModifyingOutReg" value="false" />
@@ -922,6 +1011,33 @@
    kind="avalon"
    version="15.0"
    start="nios2.data_master"
+   end="btle_control.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x9180" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.0"
+   start="nios2.data_master"
+   end="btle_connect.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x9190" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.0"
+   start="nios2.data_master"
+   end="btle_crc.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x91a0" />
+  <parameter name="defaultConnection" value="false" />
+ </connection>
+ <connection
+   kind="avalon"
+   version="15.0"
+   start="nios2.data_master"
    end="peripheral_spi.spi_control_port">
   <parameter name="arbitrationPriority" value="1" />
   <parameter name="baseAddress" value="0x9060" />
@@ -991,6 +1107,21 @@
    version="15.0"
    start="system_clock.clk"
    end="tx_trigger_ctl.clk" />
+ <connection
+   kind="clock"
+   version="15.0"
+   start="system_clock.clk"
+   end="btle_control.clk" />
+ <connection
+   kind="clock"
+   version="15.0"
+   start="system_clock.clk"
+   end="btle_connect.clk" />
+ <connection
+   kind="clock"
+   version="15.0"
+   start="system_clock.clk"
+   end="btle_crc.clk" />
  <connection kind="clock" version="15.0" start="system_clock.clk" end="ram.clk1" />
  <connection
    kind="clock"
@@ -1132,6 +1263,21 @@
    version="15.0"
    start="system_clock.clk_reset"
    end="tx_trigger_ctl.reset" />
+ <connection
+   kind="reset"
+   version="15.0"
+   start="system_clock.clk_reset"
+   end="btle_control.reset" />
+ <connection
+   kind="reset"
+   version="15.0"
+   start="system_clock.clk_reset"
+   end="btle_connect.reset" />
+ <connection
+   kind="reset"
+   version="15.0"
+   start="system_clock.clk_reset"
+   end="btle_crc.reset" />
  <connection
    kind="reset"
    version="15.0"

@@ -73,7 +73,10 @@ architecture ble_bladerf of bladerf is
         tx_trigger_ctl_in_port          :   in std_logic_vector(7 downto 0);
         tx_trigger_ctl_out_port         :   out std_logic_vector(7 downto 0);
         rx_trigger_ctl_in_port          :   in std_logic_vector(7 downto 0);
-        rx_trigger_ctl_out_port         :   out std_logic_vector(7 downto 0)
+        rx_trigger_ctl_out_port         :   out std_logic_vector(7 downto 0);
+        btle_control_export             :   out std_logic_vector(31 downto 0);
+        btle_connect_export				:   out std_logic_vector(31 downto 0);
+        btle_crc_export					:   out std_logic_vector(23 downto 0)
       );
     end component;
 
@@ -247,6 +250,10 @@ architecture ble_bladerf of bladerf is
     signal rx_sample_btle_i : signed(15 downto 0);
     signal rx_sample_btle_q : signed(15 downto 0);
     signal rx_sample_btle_valid : std_logic;
+
+	signal btle_control_bus : std_logic_vector(31 downto 0);
+	signal btle_connect_bus : std_logic_vector(31 downto 0);
+	signal btle_crc_bus : std_logic_vector(23 downto 0);
 	signal btle_detected : std_logic := '1';
 
     signal led1_blink : std_logic;
@@ -702,6 +709,9 @@ begin
         in_wb_imag 			=>  rx_sample_corrected_q,
        	in_wb_valid 		=>  rx_sample_corrected_valid,
        	in_timestamp		=>  rx_timestamp,
+		in_control			=>  btle_control_bus,
+		in_connect			=>	btle_connect_bus,
+		in_crc				=>	btle_crc_bus,
        	out_real 			=>  rx_sample_btle_i,
        	out_imag 			=>  rx_sample_btle_q,
        	out_valid 			=>  rx_sample_btle_valid,
@@ -991,7 +1001,10 @@ begin
         rx_trigger_ctl_out_port         => rx_trigger_ctl,
         tx_trigger_ctl_out_port         => tx_trigger_ctl,
         rx_trigger_ctl_in_port          => rx_trigger_ctl_rb,
-        tx_trigger_ctl_in_port          => tx_trigger_ctl_rb
+        tx_trigger_ctl_in_port          => tx_trigger_ctl_rb,
+        btle_control_export				=> btle_control_bus,
+        btle_connect_export				=> btle_connect_bus,
+        btle_crc_export					=> btle_crc_bus
       ) ;
 
     xb_gpio_direction : process(all)

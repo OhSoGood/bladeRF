@@ -657,6 +657,84 @@ int nios_xb200_synth_write(struct bladerf *dev, uint32_t value)
     return status;
 }
 
+
+int nios_btle_control_read(struct bladerf *dev, uint32_t *val)
+{
+    int status = nios_32x32_masked_read(dev, NIOS_PKT_32x32_TARGET_BTLE_CONTROL,
+                                        0xffffffff, val);
+
+    if (status == 0) {
+        log_verbose("%s: Read 0x%08x\n", __FUNCTION__, *val);
+    }
+
+    return status;
+}
+
+int nios_btle_control_write(struct bladerf *dev, uint32_t mask, uint32_t val)
+{
+    int status = nios_32x32_masked_write(dev, NIOS_PKT_32x32_TARGET_BTLE_CONTROL,
+                                         mask, val);
+
+    if (status == 0) {
+        log_verbose("%s: Wrote 0x%08x (with mask 0x%08x)\n",
+                    __FUNCTION__, val, mask);
+    }
+
+    return status;
+}
+
+
+int nios_btle_connect_read(struct bladerf *dev, uint32_t *val)
+{
+    int status = nios_32x32_masked_read(dev, NIOS_PKT_32x32_TARGET_BTLE_CONNECT,
+                                        0xffffffff, val);
+
+    if (status == 0) {
+        log_verbose("%s: Read 0x%08x\n", __FUNCTION__, *val);
+    }
+
+    return status;
+}
+
+int nios_btle_connect_write(struct bladerf *dev, uint32_t mask, uint32_t val)
+{
+    int status = nios_32x32_masked_write(dev, NIOS_PKT_32x32_TARGET_BTLE_CONNECT,
+                                         mask, val);
+
+    if (status == 0) {
+        log_verbose("%s: Wrote 0x%08x (with mask 0x%08x)\n",
+                    __FUNCTION__, val, mask);
+    }
+
+    return status;
+}
+
+
+int nios_btle_crc_read(struct bladerf *dev, uint32_t *val)
+{
+    int status = nios_32x32_masked_read(dev, NIOS_PKT_32x32_TARGET_BTLE_CRC,
+                                        0xffffffff, val);
+
+    if (status == 0) {
+        log_verbose("%s: Read 0x%08x\n", __FUNCTION__, *val);
+    }
+
+    return status;
+}
+
+int nios_btle_crc_write(struct bladerf *dev, uint32_t mask, uint32_t val)
+{
+    int status = nios_32x32_masked_write(dev, NIOS_PKT_32x32_TARGET_BTLE_CRC,
+                                         mask, val);
+
+    if (status == 0) {
+        log_verbose("%s: Wrote 0x%08x (with mask 0x%08x)\n",
+                    __FUNCTION__, val, mask);
+    }
+
+    return status;
+}
+
 int nios_expansion_gpio_read(struct bladerf *dev, uint32_t *val)
 {
     int status = nios_32x32_masked_read(dev, NIOS_PKT_32x32_TARGET_EXP,

@@ -105,6 +105,22 @@ struct backend_fns {
     int (*config_gpio_write)(struct bladerf *dev, uint32_t val);
     int (*config_gpio_read)(struct bladerf *dev, uint32_t *val);
 
+	/* BTLE Accessors */
+    int (*btle_control_write)(struct bladerf *dev,
+                                uint32_t mask, uint32_t val);
+
+    int (*btle_control_read)(struct bladerf *dev, uint32_t *val);
+
+    int (*btle_connect_write)(struct bladerf *dev,
+                                uint32_t mask, uint32_t val);
+
+    int (*btle_connect_read)(struct bladerf *dev, uint32_t *val);
+
+    int (*btle_crc_write)(struct bladerf *dev,
+                                uint32_t mask, uint32_t val);
+
+    int (*btle_crc_read)(struct bladerf *dev, uint32_t *val);
+
     /* Expansion GPIO accessors */
     int (*expansion_gpio_write)(struct bladerf *dev,
                                 uint32_t mask, uint32_t val);

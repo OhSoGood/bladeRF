@@ -26,6 +26,10 @@ entity btle_wideband_receiver is
 		in_wb_valid:	in std_logic;
 		in_timestamp:   in unsigned(63 downto 0);
 
+		in_control:		in std_logic_vector(31 downto 0);
+		in_connect:		in std_logic_vector(31 downto 0);
+		in_crc:			in std_logic_vector(23 downto 0);
+		
 		out_real:		out signed(15 downto 0);				
 		out_imag: 		out signed(15 downto 0);
 		out_valid:		out std_logic;
@@ -92,6 +96,9 @@ architecture rtl of btle_wideband_receiver is
 	signal ch_out_valid:    	std_logic_vector(num_channels - 1 downto 0);
 
 	signal rx_timestamp:	unsigned(63 downto 0);
+	signal rf_config: 		unsigned (1 downto 0);
+
+
 
 
 --	attribute preserve : boolean;
@@ -119,7 +126,8 @@ architecture rtl of btle_wideband_receiver is
 begin
 
 	rx_timestamp <= in_timestamp;
-
+	rf_config <= unsigned(in_control(1 downto 0));
+	
 	demod:
 	entity work.btle_demod_matched 
 		generic map (
@@ -140,7 +148,7 @@ begin
 		port map (
 			clock		=> clock,
 			reset		=> reset,
-			rf_config	=> "00",
+			rf_config	=> "00", --rf_config,
 			in_bit_bus	=> mapper_bit_input,
 			out_ch_info	=> mapper_ch_output,
 			out_bit_bus	=> mapper_bit_output
@@ -310,6 +318,8 @@ begin
 						in_aa_detect.valid 			=> 	ch_in_aa_detect_valid(i),
 						in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
 						in_aa_detect.crc_init 		=> 	ch_in_aa_detect_results.crc_init,
+
+						in_rf_config				=>  rf_config,
 
 						in_cts_dch					=>	ch_in_cts_dch(i),
 						out_rts_dch					=>	ch_out_rts_dch(i),
@@ -550,6 +560,8 @@ begin
 				in_aa_detect.preamble_aa 	=>	ch_in_aa_detect_results.preamble_aa,
 				in_aa_detect.crc_init 		=> ch_in_aa_detect_results.crc_init,
 
+				in_rf_config				=>  rf_config,
+				
 				in_cts_dch					=>	ch_in_cts_dch(0),
 				out_rts_dch					=>	ch_out_rts_dch(0),
 				out_dch_config				=> 	ch_out_dch_config(0),

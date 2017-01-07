@@ -54,6 +54,37 @@ static inline bool perform_write(uint8_t id, uint32_t addr, uint32_t data)
                 expansion_port_set_direction(data);
             }
             break;
+		case NIOS_PKT_32x32_TARGET_BTLE_CONTROL:
+			if (addr != 0xffffffff) {
+				uint32_t tmp = btle_control_port_read();
+				tmp &= ~(addr);
+				tmp |= (data & addr);
+				btle_control_port_write(tmp);
+			} else {
+				btle_control_port_write(data);
+			}
+			break;
+		case NIOS_PKT_32x32_TARGET_BTLE_CONNECT:
+			if (addr != 0xffffffff) {
+				uint32_t tmp = btle_connect_port_read();
+				tmp &= ~(addr);
+				tmp |= (data & addr);
+				btle_connect_port_write(tmp);
+			} else {
+				btle_connect_port_write(data);
+			}
+			break;
+		case NIOS_PKT_32x32_TARGET_BTLE_CRC:
+			if (addr != 0xffffffff) {
+				uint32_t tmp = btle_crc_port_read();
+				tmp &= ~(addr);
+				tmp |= (data & addr);
+				btle_crc_port_write(tmp);
+			} else {
+				btle_crc_port_write(data);
+			}
+			break;
+
 
         /* Add user customizations here
 
@@ -82,6 +113,18 @@ static inline bool perform_read(uint8_t id, uint32_t addr, uint32_t *data)
         case NIOS_PKT_32x32_TARGET_EXP_DIR:
             *data = expansion_port_get_direction() & addr;
             break;
+
+		case NIOS_PKT_32x32_TARGET_BTLE_CONTROL:
+			*data = btle_control_port_read() & addr;
+			break;
+
+		case NIOS_PKT_32x32_TARGET_BTLE_CONNECT:
+			*data = btle_connect_port_read() & addr;
+			break;
+
+		case NIOS_PKT_32x32_TARGET_BTLE_CRC:
+			*data = btle_crc_port_read() & addr;
+			break;
 
         /* Add user customizations here
 

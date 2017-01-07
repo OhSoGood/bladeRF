@@ -1119,6 +1119,13 @@ const struct backend_fns backend_fns_usb_legacy = {
     FIELD_INIT(.config_gpio_write, nios_legacy_config_write),
     FIELD_INIT(.config_gpio_read, nios_legacy_config_read),
 
+	FIELD_INIT(.btle_control_write, NULL),
+	FIELD_INIT(.btle_control_read, NULL),
+	FIELD_INIT(.btle_connect_write, NULL),
+	FIELD_INIT(.btle_connect_read, NULL),
+	FIELD_INIT(.btle_crc_write, NULL),
+	FIELD_INIT(.btle_crc_read, NULL),
+
     FIELD_INIT(.expansion_gpio_write, nios_legacy_expansion_gpio_write),
     FIELD_INIT(.expansion_gpio_read, nios_legacy_expansion_gpio_read),
     FIELD_INIT(.expansion_gpio_dir_write, nios_legacy_expansion_gpio_dir_write),
@@ -1187,6 +1194,13 @@ const struct backend_fns backend_fns_usb = {
 
     FIELD_INIT(.config_gpio_write, nios_config_write),
     FIELD_INIT(.config_gpio_read, nios_config_read),
+
+	FIELD_INIT(.btle_control_write, nios_btle_control_write),
+    FIELD_INIT(.btle_control_read, nios_btle_control_read),
+	FIELD_INIT(.btle_connect_write, nios_btle_connect_write),
+    FIELD_INIT(.btle_connect_read, nios_btle_connect_read),
+	FIELD_INIT(.btle_crc_write, nios_btle_crc_write),
+    FIELD_INIT(.btle_crc_read, nios_btle_crc_read),
 
     FIELD_INIT(.expansion_gpio_write, nios_expansion_gpio_write),
     FIELD_INIT(.expansion_gpio_read, nios_expansion_gpio_read),

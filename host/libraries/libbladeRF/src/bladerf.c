@@ -32,6 +32,7 @@
 #include "gain.h"
 #include "lms.h"
 #include "band_select.h"
+#include "btle.h"
 #include "xb.h"
 #include "si5338.h"
 #include "file_ops.h"
@@ -1689,6 +1690,78 @@ int bladerf_xb300_get_output_power(struct bladerf *dev,
     return status;
 }
 
+
+/*------------------------------------------------------------------------------
+ * BTLE Control register read / write functions
+ *----------------------------------------------------------------------------*/
+
+int bladerf_btle_control_read(struct bladerf *dev, uint32_t *val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CONTROL_READ(dev, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
+
+int bladerf_btle_control_write(struct bladerf *dev, uint32_t val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CONTROL_WRITE(dev, 0xffffffff, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
+
+
+int bladerf_btle_connect_read(struct bladerf *dev, uint32_t *val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CONNECT_READ(dev, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
+
+int bladerf_btle_connect_write(struct bladerf *dev, uint32_t val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CONNECT_WRITE(dev, 0xffffffff, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
+
+
+int bladerf_btle_crc_read(struct bladerf *dev, uint32_t *val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CRC_READ(dev, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
+
+int bladerf_btle_crc_write(struct bladerf *dev, uint32_t val)
+{
+    int status;
+    MUTEX_LOCK(&dev->ctrl_lock);
+
+    status = BTLE_CRC_WRITE(dev, 0xffffffff, val);
+
+    MUTEX_UNLOCK(&dev->ctrl_lock);
+    return status;
+}
 
 /*------------------------------------------------------------------------------
  * Expansion board GPIO register read / write functions

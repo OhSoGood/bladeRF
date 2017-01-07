@@ -47,6 +47,37 @@ static inline void control_reg_write(uint32_t value)
     IOWR_ALTERA_AVALON_PIO_DATA(CONTROL_BASE, value);
 }
 
+
+static inline uint32_t btle_control_port_read(void)
+{
+    return IORD_ALTERA_AVALON_PIO_DATA(BTLE_CONTROL_BASE);
+}
+
+INLINE void btle_control_port_write(uint32_t value)
+{
+    IOWR_ALTERA_AVALON_PIO_DATA(BTLE_CONTROL_BASE, value);
+}
+
+static inline uint32_t btle_connect_port_read(void)
+{
+    return IORD_ALTERA_AVALON_PIO_DATA(BTLE_CONNECT_BASE);
+}
+
+INLINE void btle_connect_port_write(uint32_t value)
+{
+    IOWR_ALTERA_AVALON_PIO_DATA(BTLE_CONNECT_BASE, value);
+}
+
+static inline uint32_t btle_crc_port_read(void)
+{
+    return IORD_ALTERA_AVALON_PIO_DATA(BTLE_CRC_BASE);
+}
+
+INLINE void btle_crc_port_write(uint32_t value)
+{
+    IOWR_ALTERA_AVALON_PIO_DATA(BTLE_CRC_BASE, value);
+}
+
 static inline uint32_t expansion_port_read(void)
 {
     return IORD_ALTERA_AVALON_PIO_DATA(XB_GPIO_BASE);

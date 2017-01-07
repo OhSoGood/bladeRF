@@ -4411,6 +4411,30 @@ const char * CALL_CONV bladerf_strerror(int error);
 /** @} (End RETCODES) */
 
 
+
+API_EXPORT
+int CALL_CONV bladerf_btle_control_read(struct bladerf *dev, uint32_t *val);
+
+
+API_EXPORT
+int CALL_CONV bladerf_btle_control_write(struct bladerf *dev, uint32_t val);
+
+
+API_EXPORT
+int CALL_CONV bladerf_btle_connect_read(struct bladerf *dev, uint32_t *val);
+
+
+API_EXPORT
+int CALL_CONV bladerf_btle_connect_write(struct bladerf *dev, uint32_t val);
+
+
+API_EXPORT
+int CALL_CONV bladerf_btle_crc_read(struct bladerf *dev, uint32_t *val);
+
+
+API_EXPORT
+int CALL_CONV bladerf_btle_crc_write(struct bladerf *dev, uint32_t val);
+
 #ifdef __cplusplus
 }
 #endif

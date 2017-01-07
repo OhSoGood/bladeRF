@@ -265,4 +265,70 @@ int nios_legacy_expansion_gpio_dir_read(struct bladerf *dev, uint32_t *val);
 int nios_legacy_expansion_gpio_dir_write(struct bladerf *dev,
                                          uint32_t mask, uint32_t outputs);
 
+
+/**
+ * Read from BTLE control
+ *
+ * @param[in]   dev         Device handle
+ * @param[out]  value       On success, updated with read value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_control_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE control
+ *
+ * @param[in]   dev         Device handle
+ * @param[in[   mask        Mask denoting bits to write
+ * @param[in]   value       Value to write
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_control_write(struct bladerf *dev,
+                                     uint32_t mask, uint32_t val);
+
+/**
+ * Read from BTLE connect
+ *
+ * @param[in]   dev         Device handle
+ * @param[out]  value       On success, updated with read value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_connect_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE connect
+ *
+ * @param[in]   dev         Device handle
+ * @param[in[   mask        Mask denoting bits to write
+ * @param[in]   value       Value to write
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_connect_write(struct bladerf *dev,
+                                     uint32_t mask, uint32_t val);
+
+/**
+ * Read from BTLE CRC
+ *
+ * @param[in]   dev         Device handle
+ * @param[out]  value       On success, updated with read value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_crc_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE CRC
+ *
+ * @param[in]   dev         Device handle
+ * @param[in[   mask        Mask denoting bits to write
+ * @param[in]   value       Value to write
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_legacy_btle_crc_write(struct bladerf *dev,
+                                     uint32_t mask, uint32_t val);
 #endif

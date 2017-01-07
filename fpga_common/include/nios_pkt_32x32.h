@@ -108,7 +108,9 @@
 
 /* IDs 0x80 through 0xff will not be assigned by Nuand. These are reserved
  * for user customizations */
-#define NIOS_PKT_32x32_TARGET_USR1    0x80
+#define NIOS_PKT_32x32_TARGET_BTLE_CONTROL    0x80
+#define NIOS_PKT_32x32_TARGET_BTLE_CONNECT    0x81
+#define NIOS_PKT_32x32_TARGET_BTLE_CRC        0x82
 #define NIOS_PKT_32x32_TARGET_USR128  0xff
 
 /* Flag bits */

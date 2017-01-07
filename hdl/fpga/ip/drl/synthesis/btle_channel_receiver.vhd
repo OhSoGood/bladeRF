@@ -35,6 +35,7 @@ entity btle_channel_receiver is
 		out_rts:        out std_logic;
 
 		in_aa_detect:	in aa_crc_config_t;
+		in_rf_config:	in unsigned (1 downto 0);
 
 		in_cts_dch:		in std_logic;
 		out_rts_dch:	out std_logic;
@@ -491,7 +492,9 @@ begin
 						
 						if in_cts = '1' then
 
-							out_imag <= x"0000";				
+							--out_imag <= x"0000";	
+
+							out_imag <= signed(resize(in_rf_config, out_imag'length)); 
 							out_real <= to_signed(channel_index, out_real'length);			
 							out_valid <= '1';
  							total_count := total_count + 1;

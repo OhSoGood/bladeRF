@@ -294,6 +294,7 @@ set(LIBBLADERF_SOURCE
         src/version.h
         src/version_compat.c
         src/xb.c
+        src/btle.c
         ${BLADERF_HOST_COMMON_SOURCE_DIR}/sha256.c
         ${BLADERF_HOST_COMMON_SOURCE_DIR}/conversions.c
         ${BLADERF_HOST_COMMON_SOURCE_DIR}/log.c

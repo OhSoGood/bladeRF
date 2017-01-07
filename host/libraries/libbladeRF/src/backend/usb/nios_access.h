@@ -319,4 +319,75 @@ int nios_read_trigger(struct bladerf *dev, bladerf_module module,
 int nios_write_trigger(struct bladerf *dev, bladerf_module module,
                        bladerf_trigger_signal trigger, uint8_t value);
 
+/**
+ * Read from BTLE Control Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+
+int nios_btle_control_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE Control Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_btle_control_write(struct bladerf *dev, uint32_t mask, uint32_t val);
+
+/**
+ * Read from BTLE Connect Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+
+int nios_btle_connect_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE Connect Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+
+int nios_btle_connect_write(struct bladerf *dev, uint32_t mask, uint32_t val);
+
+/**
+ * Read from BTLE CRC Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+
+int nios_btle_crc_read(struct bladerf *dev, uint32_t *val);
+
+/**
+ * Write to BTLE CRC Register
+ *
+ * @param[in]   dev         Device handle
+ * @param[in]   mask        Mask denoting bits to write
+ * @param[in]   value       Write value
+ *
+ * @return 0 on success, BLADERF_ERR_* code on error.
+ */
+int nios_btle_crc_write(struct bladerf *dev, uint32_t mask, uint32_t val);
+
+
 #endif
