@@ -1113,11 +1113,11 @@ begin
         if( rx_reset = '1' ) then
             rx_ts_reset <= '1' ;
         elsif( rising_edge(rx_clock) ) then
-      --      if( meta_en_rx = '1' ) then
+            if( lms_rx_enable_qualified = '1' ) then
                 rx_ts_reset <= '0' ;
-      --      else
-      --          rx_ts_reset <= '1' ;
-      --      end if ;
+            else
+                rx_ts_reset <= '1' ;
+            end if ;
         end if ;
     end process ;
 
