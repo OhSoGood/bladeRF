@@ -220,13 +220,14 @@ begin
 
 		variable active_channel: integer := 0;
 		variable state_dch: wb_state_type;
+		variable old_control : std_logic := '0';
 
 		begin
 			if reset = '1' then
 
 				mux_dch_config <= ( '0', (others => '0'), (others => '0') );
 				ch_in_cts_dch <= (others => '0');
-
+				old_control := in_control(2);
 				state_dch := STATE_WAIT_RTS;
 					
 			elsif rising_edge(clock) then
@@ -238,20 +239,37 @@ begin
 
 					when STATE_WAIT_RTS =>
 
-						for ch in 0 to num_channels - 1 loop
+						if in_control(2) /= old_control then
 
-							if ch_out_rts_dch(ch) = '1' then
+							old_control := in_control(2);
+							
+							if in_connect(31) = '1' then
+								mux_dch_config.preamble_aa <= "10101010" & in_connect;
+							else
+								mux_dch_config.preamble_aa <= "01010101" & in_connect;
+							end if; 
 
-								ch_in_cts_dch(ch) <= '1';
-								active_channel := ch;
-								state_dch := STATE_SENDING;
+							mux_dch_config.crc_init <= in_crc;
+							mux_dch_config.valid <= '1';
 
-								exit;
+						else
+						
+							for ch in 0 to num_channels - 1 loop
+
+								if ch_out_rts_dch(ch) = '1' then
+
+									ch_in_cts_dch(ch) <= '1';
+									active_channel := ch;
+									state_dch := STATE_SENDING;
+
+									exit;
 								
-							end if;
+								end if;
 									
-						end loop;
+							end loop;
 
+						end if;
+						
 					when STATE_SENDING =>
 
 						if ch_out_rts_dch(active_channel) = '1' then

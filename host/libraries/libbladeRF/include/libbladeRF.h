@@ -4410,7 +4410,7 @@ const char * CALL_CONV bladerf_strerror(int error);
 
 /** @} (End RETCODES) */
 
-
+#define BLADERF_BTLE_CONTROL_CONNECT (1 << 2)
 
 API_EXPORT
 int CALL_CONV bladerf_btle_control_read(struct bladerf *dev, uint32_t *val);
