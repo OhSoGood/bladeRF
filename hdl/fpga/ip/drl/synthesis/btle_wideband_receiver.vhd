@@ -146,7 +146,7 @@ begin
 		port map (
 			clock		=> clock,
 			reset		=> reset,
-			rf_config	=> "00", --rf_config,
+			rf_config	=> rf_config,
 			in_bit_bus	=> mapper_bit_input,
 			out_ch_info	=> mapper_ch_output,
 			out_bit_bus	=> mapper_bit_output

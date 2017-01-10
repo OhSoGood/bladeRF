@@ -308,6 +308,8 @@ begin
 								STATE_SEND_DECODE_STATUS,
 								STATE_SEND_PREAMBLE,
 								STATE_SEND_AA,
+								STATE_SEND_CONNECT_CRC,
+								STATE_SEND_CONNECT_AA,
 								STATE_SEND_PAYLOAD_COUNT,
 								STATE_SEND_PAYLOAD,
 								STATE_SEND_SAMPLE_COUNT,
@@ -569,8 +571,60 @@ begin
 							out_valid <= '1';
  							total_count := total_count + 1;
 
- 							state := STATE_SEND_PAYLOAD_COUNT;
+ 							state := STATE_SEND_CONNECT_CRC;
+ 							
 						end if;
+
+					when STATE_SEND_CONNECT_CRC =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+						
+							if crc_valid = '1' and common_header.pdu_llid = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, common_header.pdu_llid'length) then
+
+								out_imag <= "10000000" & signed(payload_bits(4)(31 downto 24));
+								out_real <= signed(payload_bits(4)(23 downto 8));
+
+							else
+
+								out_imag <= (others => '0');
+								out_real <= (others => '0');
+
+							end if;
+
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+ 							state := STATE_SEND_CONNECT_AA;
+ 							
+ 						end if;
+
+
+					when STATE_SEND_CONNECT_AA =>
+
+						out_rts <= '1';
+
+						if in_cts = '1' then
+						
+							if crc_valid = '1' and common_header.pdu_llid = to_unsigned(BTLE_ADV_PDU_CONNECT_REQ, common_header.pdu_llid'length) then
+
+								out_imag <= signed(payload_bits(3)(31 downto 16));
+								out_real <= signed(payload_bits(3)(15 downto 0));
+
+							else
+
+								out_imag <= (others => '0');
+								out_real <= (others => '0');
+
+							end if;
+
+							out_valid <= '1';
+ 							total_count := total_count + 1;
+
+ 							state := STATE_SEND_PAYLOAD_COUNT;
+ 							
+ 						end if;
  					
 					when STATE_SEND_PAYLOAD_COUNT =>
 
