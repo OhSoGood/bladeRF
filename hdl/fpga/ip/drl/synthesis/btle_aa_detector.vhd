@@ -6,7 +6,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
 use work.btle_common.all;
+use work.btle_channel.all;
 
 entity btle_aa_detector is
 	generic (
@@ -70,7 +72,7 @@ begin
 				out_detect_results.crc_init <= (others => '0');
 				
 				out_ch_info.valid <= '0';
-				out_ch_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, out_ch_info.ch_idx'length);
+				out_ch_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, out_ch_info.ch_idx'length);
 				out_ch_info.adv <= '0';
 
 				if in_data_ch_cfg.valid = '1' then

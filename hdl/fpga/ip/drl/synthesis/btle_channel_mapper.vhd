@@ -6,7 +6,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
 use work.btle_common.all;
+use work.btle_channel.all;
 
 entity btle_channel_mapper is
 	generic (
@@ -27,23 +29,13 @@ end btle_channel_mapper;
 
 architecture rtl of btle_channel_mapper is
 
-	type subband_array_t is array (0 to BTLE_FFT_SIZE - 1) of integer range 0 to 63;
-	type band_array_t is array (0 to BTLE_NUM_SUBBANDS - 1) of subband_array_t;
-
-	constant rf_band_info: band_array_t := (
-		(	5, 6, 7, 8, 9, 10, 38, BTLE_INVALID_CHANNEL, BTLE_INVALID_CHANNEL, BTLE_INVALID_CHANNEL, 37, 0, 1, 2, 3, 4 ),
-		(	63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63 ),
-		(	63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63 )
-	);
-
-
 	
 begin
 
 	channeliser:
 	process(clock, reset) is
 
-		variable ch_int: integer range 0 to BTLE_INVALID_CHANNEL;
+		variable ch_int: channel_int_t;
 
 		begin
 			if reset = '1' then
@@ -52,7 +44,7 @@ begin
 
 				out_ch_info.valid <= '0';
 				out_ch_info.adv <= '0';
-				out_ch_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, out_ch_info.ch_idx'length);
+				out_ch_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, out_ch_info.ch_idx'length);
 
 				out_bit_bus.seq <= '0';
 				out_bit_bus.timeslot <= (others => '0');
@@ -63,10 +55,11 @@ begin
 					if max_channels = 1 then
 						ch_int := 37;
 					else
-						ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_bit_bus.timeslot));
+						ch_int := btle_channel_get_idx( to_integer(rf_config), to_integer(in_bit_bus.timeslot) );
+						--ch_int := rf_band_info(to_integer(rf_config))(to_integer(in_bit_bus.timeslot));
 					end if;
 					
-					if  ch_int /= BTLE_INVALID_CHANNEL then
+					if  ch_int /= BTLE_CHANNEL_INVALID then
 
 						out_bit_bus <= in_bit_bus;
 

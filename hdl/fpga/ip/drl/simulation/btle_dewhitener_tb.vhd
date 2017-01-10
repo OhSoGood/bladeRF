@@ -30,13 +30,13 @@ architecture testbench of btle_dewhitener_tb is
 
 begin
     duv: entity work.btle_dewhitener 
-    generic map(channel => 37)
-    port map(
+     port map(
     	clock => clock,
     	reset => reset,
     	in_restart => seq_restart,
        	in_seq => '0',
        	in_valid => in_valid,
+       	in_ch_idx => to_unsigned(37, 6),
         out_seq => out_seq,
         out_valid => out_valid
         );

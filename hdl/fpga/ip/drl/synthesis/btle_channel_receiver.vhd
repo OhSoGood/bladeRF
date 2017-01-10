@@ -14,7 +14,6 @@ use work.btle_common.all;
 
 entity btle_channel_receiver is
 	generic(
-		channel_index : integer := 37;
 		samples_per_bit : natural := 2
 	);
 	port(
@@ -36,6 +35,7 @@ entity btle_channel_receiver is
 
 		in_aa_detect:	in aa_crc_config_t;
 		in_rf_config:	in unsigned (1 downto 0);
+		in_ch_idx:      in channel_idx_t;
 
 		in_cts_dch:		in std_logic;
 		out_rts_dch:	out std_logic;
@@ -107,15 +107,13 @@ begin
 
 	dewhiten:
 	entity work.btle_dewhitener
-		generic map (
-			channel => channel_index
-		)
 		port map (
 			clock => clock,
 			reset => reset,
 			in_restart => soh,
 			in_seq => demod_out_seq,
 			in_valid => demod_out_valid,
+			in_ch_idx => in_ch_idx,
 			out_seq => dew_out_seq,
 			out_valid => dew_out_valid
 		);
@@ -495,7 +493,7 @@ begin
 							--out_imag <= x"0000";	
 
 							out_imag <= signed(resize(in_rf_config, out_imag'length)); 
-							out_real <= to_signed(channel_index, out_real'length);			
+							out_real <= signed(resize(in_ch_idx,    out_real'length));			
 							out_valid <= '1';
  							total_count := total_count + 1;
 

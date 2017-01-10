@@ -8,6 +8,7 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 use work.btle_common.all;
+use work.btle_channel.all;
 use work.btle_window.all;
 use work.btle_fft.all;
 
@@ -44,9 +45,6 @@ architecture rtl of btle_wideband_receiver is
 	type bus_array is array(num_channels - 1 downto 0) of sample_t;
 	type config_array_t is array (num_channels - 1 downto 0) of aa_crc_config_t;
 	
-	type ch_array_type is array (0 to 15) OF integer;
-	constant ch_idx_array : ch_array_type := (5, 6, 7, 8, 9, 10, 38, 40, 40, 40, 37, 0, 1, 2, 3, 4 );
-
 	type wb_state_type is ( 
 							STATE_WAIT_RTS, 
 							STATE_SENDING );
@@ -203,7 +201,7 @@ begin
 				aa_bit_input.valid <= '0';
 				aa_bit_input.timeslot <= (others => '0');
 
-				aa_ch_input.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, aa_ch_input.ch_idx'length);
+				aa_ch_input.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, aa_ch_input.ch_idx'length);
 				aa_ch_input.adv <= '0';
 				aa_ch_input.valid <= '0';
 
@@ -289,11 +287,10 @@ begin
 		rx_bank : for i in 0 to num_channels - 1 
 		generate
 
-			valid: if ch_idx_array(i) /= 40 generate
+			valid: if btle_channel_get_idx(0, i) /= BTLE_CHANNEL_INVALID generate
 		
 				ch_rx: entity work.btle_channel_receiver
 					generic map (
-						channel_index => ch_idx_array(i), 
 						samples_per_bit => samples_per_bit
 					)
 					port map (
@@ -320,7 +317,8 @@ begin
 						in_aa_detect.crc_init 		=> 	ch_in_aa_detect_results.crc_init,
 
 						in_rf_config				=>  rf_config,
-
+						in_ch_idx					=>  to_unsigned(btle_channel_get_idx(to_integer(rf_config), i), 6),
+						
 						in_cts_dch					=>	ch_in_cts_dch(i),
 						out_rts_dch					=>	ch_out_rts_dch(i),
 						out_dch_config				=> 	ch_out_dch_config(i),
@@ -403,7 +401,7 @@ begin
 					
 					ch_in_info.valid <= '0';
 					ch_in_info.adv <= '0';
-					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, ch_in_info.ch_idx'length);
 					ch_in_info_valid <= (others => '0');
 					
 				elsif rising_edge(clock) then
@@ -430,7 +428,7 @@ begin
 
 					ch_in_info.valid <= '0';
 					ch_in_info.adv <= '0';
-					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, ch_in_info.ch_idx'length);
 					ch_in_info_valid <= (others => '0');
 
 					if aa_bit_output.valid = '1' then
@@ -536,7 +534,7 @@ begin
 	else generate
 
 		single_rx: entity work.btle_channel_receiver
-			generic map(channel_index => 37, samples_per_bit => samples_per_bit)
+			generic map(samples_per_bit => samples_per_bit)
 			port map(
 				clock 						=> 	clock,
 				reset 						=> 	reset,
@@ -561,7 +559,7 @@ begin
 				in_aa_detect.crc_init 		=> ch_in_aa_detect_results.crc_init,
 
 				in_rf_config				=>  rf_config,
-				
+				in_ch_idx 					=>  to_unsigned(37, 6),
 				in_cts_dch					=>	ch_in_cts_dch(0),
 				out_rts_dch					=>	ch_out_rts_dch(0),
 				out_dch_config				=> 	ch_out_dch_config(0),
@@ -614,7 +612,7 @@ begin
 
 					ch_in_info.valid <= '0';
 					ch_in_info.adv <= '0';
-					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, ch_in_info.ch_idx'length);
 					ch_in_info_valid <= (others => '0');
 					
 				elsif rising_edge(clock) then
@@ -633,7 +631,7 @@ begin
 
 					ch_in_info.valid <= '0';
 					ch_in_info.adv <= '0';
-					ch_in_info.ch_idx <= to_unsigned(BTLE_INVALID_CHANNEL, ch_in_info.ch_idx'length);
+					ch_in_info.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, ch_in_info.ch_idx'length);
 					ch_in_info_valid <= (others => '0');
 
 					if aa_bit_output.valid = '1' then

@@ -49,6 +49,10 @@ begin
 		in_wb_valid => in_iq_bus.valid,
 		in_timestamp => (others => '0'),
 
+		in_control => (others => '0'),
+		in_connect => (others => '0'),
+		in_crc => (others => '0'),
+
 		out_real => out_real,
 		out_imag => out_imag,
 		out_valid => out_valid, 
