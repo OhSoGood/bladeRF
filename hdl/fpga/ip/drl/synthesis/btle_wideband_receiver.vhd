@@ -305,7 +305,7 @@ begin
 		rx_bank : for i in 0 to num_channels - 1 
 		generate
 
-			valid: if btle_channel_get_idx(0, i) /= BTLE_CHANNEL_INVALID generate
+			valid: if btle_channel_get_idx(1, i) /= BTLE_CHANNEL_INVALID generate
 		
 				ch_rx: entity work.btle_channel_receiver
 					generic map (
