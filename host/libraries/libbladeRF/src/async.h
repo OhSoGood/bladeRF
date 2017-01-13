@@ -90,4 +90,6 @@ int async_submit_stream_buffer(struct bladerf_stream *stream,
 
 void async_deinit_stream(struct bladerf_stream *stream);
 
+void async_abort_stream(struct bladerf_stream *stream);
+
 #endif

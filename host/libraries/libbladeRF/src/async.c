@@ -231,3 +231,10 @@ void async_deinit_stream(struct bladerf_stream *stream)
     free(stream);
 }
 
+
+void async_abort_stream(struct bladerf_stream *stream)
+{
+	log_verbose( "Aborting stream...\n" );
+	stream->dev->fn->abort_stream(stream);
+}
+

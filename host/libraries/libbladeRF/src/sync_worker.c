@@ -271,11 +271,12 @@ void sync_worker_deinit(struct sync_worker *w,
         MUTEX_UNLOCK(lock);
     }
 
-    status = sync_worker_wait_for_state(w, SYNC_WORKER_STATE_STOPPED, 3000);
+    status = sync_worker_wait_for_state(w, SYNC_WORKER_STATE_STOPPED, 1000);
 
     if (status != 0) {
         log_warning("Timed out while stopping worker. Canceling thread.\n");
-        pthread_cancel(w->thread);
+		async_abort_stream(w->stream);
+		pthread_cancel(w->thread);
     }
 
     pthread_join(w->thread, NULL);

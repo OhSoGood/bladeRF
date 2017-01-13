@@ -181,6 +181,7 @@ struct backend_fns {
     int (*submit_stream_buffer)(struct bladerf_stream *stream, void *buffer,
                                 unsigned int timeout_ms, bool nonblock);
     void (*deinit_stream)(struct bladerf_stream *stream);
+    void (*abort_stream)(struct bladerf_stream *stream);
 
     /* Schedule a frequency retune operation */
     int (*retune)(struct bladerf *dev, bladerf_module module,

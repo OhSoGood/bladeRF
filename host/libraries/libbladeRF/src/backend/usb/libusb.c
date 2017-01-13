@@ -1331,6 +1331,15 @@ static int lusb_deinit_stream(void *driver, struct bladerf_stream *stream)
     return 0;
 }
 
+
+static int lusb_abort_stream(void *driver, struct bladerf_stream *stream)
+{
+	cancel_all_transfers(stream);
+	stream->state = STREAM_SHUTTING_DOWN;
+	return 0;
+}
+
+
 static const struct usb_fns libusb_fns = {
     FIELD_INIT(.probe, lusb_probe),
     FIELD_INIT(.open, lusb_open),
@@ -1344,6 +1353,7 @@ static const struct usb_fns libusb_fns = {
     FIELD_INIT(.stream, lusb_stream),
     FIELD_INIT(.submit_stream_buffer, lusb_submit_stream_buffer),
     FIELD_INIT(.deinit_stream, lusb_deinit_stream),
+    FIELD_INIT(.abort_stream, lusb_abort_stream),
     FIELD_INIT(.open_bootloader, lusb_open_bootloader),
     FIELD_INIT(.close_bootloader, lusb_close_bootloader),
 };

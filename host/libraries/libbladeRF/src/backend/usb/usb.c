@@ -895,6 +895,14 @@ static void usb_deinit_stream(struct bladerf_stream *stream)
     usb->fn->deinit_stream(driver, stream);
 }
 
+
+static void usb_abort_stream(struct bladerf_stream *stream)
+{
+	void *driver;
+    struct bladerf_usb *usb = usb_backend(stream->dev, &driver);
+    usb->fn->abort_stream(driver, stream);	
+}
+
 /*
  * Information about the boot image format and boot over USB caan be found in
  * Cypress AN76405: EZ-USB (R) FX3 (TM) Boot Options:
@@ -1161,6 +1169,8 @@ const struct backend_fns backend_fns_usb_legacy = {
     FIELD_INIT(.stream, usb_stream),
     FIELD_INIT(.submit_stream_buffer, usb_submit_stream_buffer),
     FIELD_INIT(.deinit_stream, usb_deinit_stream),
+	FIELD_INIT(.abort_stream, usb_abort_stream),
+
 
     FIELD_INIT(.retune, nios_retune),
 
@@ -1237,6 +1247,7 @@ const struct backend_fns backend_fns_usb = {
     FIELD_INIT(.stream, usb_stream),
     FIELD_INIT(.submit_stream_buffer, usb_submit_stream_buffer),
     FIELD_INIT(.deinit_stream, usb_deinit_stream),
+	FIELD_INIT(.abort_stream, usb_abort_stream),
 
     FIELD_INIT(.retune, nios_retune),
 

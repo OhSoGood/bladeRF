@@ -461,6 +461,12 @@ static int cyapi_deinit_stream(void *driver, struct bladerf_stream *stream)
     return 0;
 }
 
+
+static int cyapi_abort_stream(void *driver, struct bladerf_stream *stream)
+{
+	return 0;
+}
+
 static int cyapi_init_stream(void *driver, struct bladerf_stream *stream,
                             size_t num_transfers)
 {
@@ -807,6 +813,7 @@ extern "C" {
         FIELD_INIT(.stream, cyapi_stream),
         FIELD_INIT(.submit_stream_buffer, cyapi_submit_stream_buffer),
         FIELD_INIT(.deinit_stream, cyapi_deinit_stream),
+        FIELD_INIT(.abort_stream, cyapi_abort_stream),
         FIELD_INIT(.open_bootloader, cyapi_open_bootloader),
         FIELD_INIT(.close_bootloader, cyapi_close),
     };

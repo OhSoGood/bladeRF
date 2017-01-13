@@ -258,6 +258,12 @@ static void dummy_deinit_stream(struct bladerf_stream *stream)
     return;
 }
 
+static void dummy_abort_stream(struct bladerf_stream *stream)
+{
+    return;
+}
+
+
 static int dummy_retune(struct bladerf *dev, bladerf_module module,
                         uint64_t timestamp, uint16_t nint, uint32_t nfrac,
                         uint8_t  freqsel, uint8_t vcocap, bool low_band,
@@ -353,6 +359,8 @@ const struct backend_fns backend_fns_dummy = {
     FIELD_INIT(.stream, dummy_stream),
     FIELD_INIT(.submit_stream_buffer, dummy_submit_stream_buffer),
     FIELD_INIT(.deinit_stream, dummy_deinit_stream),
+	FIELD_INIT(.abort_stream, dummy_abort_stream),
+
 
     FIELD_INIT(.retune, dummy_retune),
 

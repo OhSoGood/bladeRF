@@ -133,6 +133,8 @@ struct usb_fns {
 
     int (*deinit_stream)(void *driver, struct bladerf_stream *stream);
 
+	int (*abort_stream)(void *driver, struct bladerf_stream *stream);
+
     int (*open_bootloader)(void **driver, uint8_t bus, uint8_t addr);
     void (*close_bootloader)(void *driver);
 };
