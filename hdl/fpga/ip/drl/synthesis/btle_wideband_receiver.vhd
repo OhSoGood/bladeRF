@@ -11,6 +11,7 @@ use work.btle_common.all;
 use work.btle_channel.all;
 use work.btle_window.all;
 use work.btle_fft.all;
+use work.btle_control.all;
 
 entity btle_wideband_receiver is
 	generic(
@@ -97,6 +98,8 @@ architecture rtl of btle_wideband_receiver is
 	signal rx_timestamp:	unsigned(63 downto 0);
 	signal rf_config: 		unsigned (1 downto 0);
 
+	signal report_opts : btle_control_report_opts_t;
+
 	signal protection_expired : std_logic := '0';
 	signal protected_reset: std_logic := '0';
 
@@ -126,6 +129,12 @@ begin
 
 	rx_timestamp <= in_timestamp;
 	rf_config <= unsigned(in_control(1 downto 0));
+
+	report_opts.adv_hdr_fail <= in_control(BTLE_CONTROL_REPORT_ADV_HDR_FAILURE);
+	report_opts.adv_crc_fail <= in_control(BTLE_CONTROL_REPORT_ADV_CRC_FAILURE);
+	report_opts.data_hdr_fail <= in_control(BTLE_CONTROL_REPORT_DATA_HDR_FAILURE);
+	report_opts.data_crc_fail <= in_control(BTLE_CONTROL_REPORT_DATA_CRC_FAILURE);
+
 	protected_reset <= reset or protection_expired;
 
     protector: entity work.btle_protection 
@@ -250,9 +259,9 @@ begin
 
 					when STATE_WAIT_RTS =>
 
-						if in_control(2) /= old_control then
+						if in_control(BTLE_CONTROL_CONNECT) /= old_control then
 
-							old_control := in_control(2);
+							old_control := in_control(BTLE_CONTROL_CONNECT);
 							
 							if in_connect(31) = '1' then
 								mux_dch_config.preamble_aa <= "10101010" & in_connect;
@@ -352,6 +361,8 @@ begin
 						out_rts_dch					=>	ch_out_rts_dch(i),
 						out_dch_config				=> 	ch_out_dch_config(i),
 
+						in_rpt_opts                 =>  report_opts,
+						
 						out_real 					=> 	ch_out_real(i),
 						out_imag 					=> 	ch_out_imag(i),
 						out_valid 					=> 	ch_out_valid(i)
@@ -602,6 +613,8 @@ begin
 				in_cts_dch					=>	ch_in_cts_dch(0),
 				out_rts_dch					=>	ch_out_rts_dch(0),
 				out_dch_config				=> 	ch_out_dch_config(0),
+
+				in_rpt_opts                 =>  report_opts,
 
 				out_real 					=> 	ch_out_real(0),
 				out_imag 					=> 	ch_out_imag(0),

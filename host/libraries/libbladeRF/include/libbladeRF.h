@@ -4410,7 +4410,14 @@ const char * CALL_CONV bladerf_strerror(int error);
 
 /** @} (End RETCODES) */
 
+#define BLADERF_BTLE_CONTROL_RF_ID_MASK (0x03)
+
 #define BLADERF_BTLE_CONTROL_CONNECT (1 << 2)
+
+#define BLADERF_BTLE_CONTROL_REPORT_ADV_HDR_FAILURE (1 << 3)
+#define BLADERF_BTLE_CONTROL_REPORT_ADV_CRC_FAILURE (1 << 4)
+#define BLADERF_BTLE_CONTROL_REPORT_DATA_HDR_FAILURE (1 << 5)
+#define BLADERF_BTLE_CONTROL_REPORT_DATA_CRC_FAILURE (1 << 6)
 
 API_EXPORT
 int CALL_CONV bladerf_btle_control_read(struct bladerf *dev, uint32_t *val);

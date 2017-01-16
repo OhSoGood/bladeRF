@@ -29,6 +29,8 @@ package btle_channel is
 	function btle_channel_get_idx (	in_rf_id:    	in subband_int_t; 
 									in_timeslot: 	in timeslot_int_t)  return channel_int_t;
 
+	function btle_channel_is_adv  ( in_ch_idx:		in channel_idx_t) return boolean;
+
 end;
 
 
@@ -46,6 +48,18 @@ package body btle_channel is
 
 		end;
 
+
+	function btle_channel_is_adv  ( in_ch_idx:		in channel_idx_t) 
+
+		return boolean is
+
+		begin
+			if to_integer(in_ch_idx) >= 37 and to_integer(in_ch_idx) <= 39 then
+				return true;
+			else
+				return false;
+			end if;
+		end;
 	
 end btle_channel;
 

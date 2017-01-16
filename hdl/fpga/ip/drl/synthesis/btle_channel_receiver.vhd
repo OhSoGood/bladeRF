@@ -10,7 +10,8 @@ use ieee.numeric_std.all;
 
 use work.btle_complex.all;
 use work.btle_common.all;
-
+use work.btle_control.all;
+use work.btle_channel.all;
 
 entity btle_channel_receiver is
 	generic(
@@ -40,6 +41,8 @@ entity btle_channel_receiver is
 		in_cts_dch:		in std_logic;
 		out_rts_dch:	out std_logic;
 		out_dch_config:	out aa_crc_config_t;
+
+		in_rpt_opts:	in btle_control_report_opts_t;
 		
 		out_real:		out signed(15 downto 0);
 		out_imag:		out signed(15 downto 0);
@@ -429,10 +432,25 @@ begin
 								-- Header decode failed
 								-- -> No point decoding the payload as have no reliable idea how long it is
 								-- -> Start reporting with known information.
-								
-								--state := STATE_START_REPORT;
-								state := STATE_WAIT_DETECT;
 
+								if btle_channel_is_adv(in_ch_idx) = true then
+
+									if in_rpt_opts.adv_hdr_fail = '1' then
+										state := STATE_START_REPORT;
+									else
+										state := STATE_WAIT_DETECT;
+									end if;
+									
+								else
+								
+									if in_rpt_opts.data_hdr_fail = '1' then
+										state := STATE_START_REPORT;
+									else
+										state := STATE_WAIT_DETECT;
+									end if;
+									
+								end if;
+								
 							end if;
 
 						end if;
@@ -446,7 +464,25 @@ begin
 							if crc_valid = '1' then
 							    state := STATE_START_REPORT;
 							else
-								state := STATE_WAIT_DETECT;
+
+								if btle_channel_is_adv(in_ch_idx) = true then
+
+									if in_rpt_opts.adv_crc_fail = '1' then
+										state := STATE_START_REPORT;
+									else
+										state := STATE_WAIT_DETECT;
+									end if;
+									
+								else
+								
+									if in_rpt_opts.data_crc_fail = '1' then
+										state := STATE_START_REPORT;
+									else
+										state := STATE_WAIT_DETECT;
+									end if;
+									
+								end if;
+
 							end if;
 							
 						else
