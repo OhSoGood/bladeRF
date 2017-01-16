@@ -79,13 +79,13 @@ architecture rtl of btle_channel_receiver is
 	
 
 
-	signal crc_result : std_logic_vector (23 downto 0);
+	--signal crc_result : std_logic_vector (23 downto 0);
 	signal crc_decoded: std_logic := '0';
 	signal crc_valid : std_logic := '0';
 
 	signal common_header: common_header_t;
-	signal adv_header: adv_header_t;
-	signal data_header: data_header_t;
+	--signal adv_header: adv_header_t;
+	--signal data_header: data_header_t;
 
 	signal aa_channel_info: btle_ch_info_t;
 	signal aa_detection_memory: aa_crc_config_t;
@@ -128,8 +128,8 @@ begin
 			in_valid		=>	dew_to_modules_valid,
 			in_ch_info		=>	aa_channel_info,
 			out_common_hdr	=>	common_header,
-			out_adv_hdr     =>  adv_header,
-			out_data_hdr	=>  data_header
+			out_adv_hdr     =>  open,
+			out_data_hdr	=>  open
 		);
 
 
@@ -144,7 +144,7 @@ begin
 			in_seq			=> 	dew_to_modules_seq,
 			in_valid		=>	dew_to_modules_valid,
 			in_seed			=>	aa_detection_memory.crc_init,
-			out_crc			=>	crc_result,
+			out_crc			=>	open,
 			out_decoded		=>	crc_decoded,
 			out_valid		=>	crc_valid
 		);
@@ -315,6 +315,9 @@ begin
 								STATE_SEND_SAMPLE_COUNT,
 								STATE_SEND_SAMPLES,
 								STATE_SEND_NULL,
+								STATE_SEND_TT_RX,
+								STATE_SEND_TT_REQ,
+								STATE_SEND_TT_REPORT,
 								STATE_SEND_PACKET_END );
 
 		variable state : ch_state_t;
@@ -325,6 +328,10 @@ begin
 
 		variable aa_timestamp : unsigned (63 downto 0);
 
+		variable tt_rx : integer := 0;
+		variable tt_req : integer := 0;
+		variable tt_report : integer := 0;
+		
 		
 		begin
 
@@ -340,6 +347,10 @@ begin
 				soh <= '0';
 				sop <= '0';
 
+		 		tt_rx := 0;
+		 		tt_req := 0;
+		 		tt_report  := 0;
+			
 				iq_from_mem_rd_addr <= (others => '0');
 				
 				state := STATE_WAIT_DETECT;
@@ -362,6 +373,7 @@ begin
 							-- Save the timetamp and the 'read' buffer position when the AA was detected
 							-- so that symbols (including some pretrigger) can be reported
 
+							tt_rx := 0;
 							aa_detection_memory <= in_aa_detect;
 							aa_timestamp := in_timestamp;
 							aa_channel_info <= in_ch_info;
@@ -377,6 +389,8 @@ begin
 
 					when STATE_TRIGGER_HEADER =>
 
+						tt_rx := tt_rx + 1;
+							
 						if in_demod_valid = '1' then
 
 							soh <= '1';
@@ -386,6 +400,8 @@ begin
 							
 					when STATE_RX_HEADER =>
 
+						tt_rx := tt_rx + 1;
+								
 						if common_header.decoded = '1' then
 
 							if common_header.valid = '1' then
@@ -393,7 +409,7 @@ begin
 								-- The header was decoded OK
 								-- -> Signal start of payload (SOP)
 								-- -> Attempt to decode the payload and CRC
-								
+
 								sop <= '1';
 
 								-- How many bits to receive payload + CRC?
@@ -423,6 +439,8 @@ begin
 						
 					when STATE_RX_PAYLOAD =>
 
+						tt_rx := tt_rx + 1;
+							
 						if crc_decoded = '1' then
 
 							if crc_valid = '1' then
@@ -432,6 +450,7 @@ begin
 							end if;
 							
 						else
+						
 							if dew_to_modules_valid = '1' then
 
 								if sub_count < sub_target then
@@ -448,20 +467,23 @@ begin
 
 					when STATE_START_REPORT =>
 
+ 						tt_req := 0;
 						out_rts <= '1';
 
  						sub_count := 0;
  						sub_target := 0;
  						total_count := 0;
- 						
+
 						state := STATE_WAIT_CTS;
 						
 					when STATE_WAIT_CTS =>
 
+ 						tt_req := tt_req + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
 
+							tt_report := 0;
 							out_imag <= x"5555";				
 							out_real <= x"AAAA";								
 							out_valid <= '1';
@@ -473,6 +495,7 @@ begin
 
 					when STATE_SEND_PROTOCOL_VERSION =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 						
 						if in_cts = '1' then
@@ -488,6 +511,7 @@ begin
 
 					when STATE_SEND_BOARD_CHANNEL_ID =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 						
 						if in_cts = '1' then
@@ -505,6 +529,7 @@ begin
 
 					when STATE_SEND_TIMESTAMP1 =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 						
 						if in_cts = '1' then
@@ -520,6 +545,7 @@ begin
 
 					when STATE_SEND_TIMESTAMP2 =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 						
 						if in_cts = '1' then
@@ -534,6 +560,7 @@ begin
 
 					when STATE_SEND_DECODE_STATUS =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -548,6 +575,7 @@ begin
 
  					when STATE_SEND_PREAMBLE =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -562,6 +590,7 @@ begin
 
  					when STATE_SEND_AA =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -577,6 +606,7 @@ begin
 
 					when STATE_SEND_CONNECT_CRC =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -603,6 +633,7 @@ begin
 
 					when STATE_SEND_CONNECT_AA =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -628,6 +659,7 @@ begin
  					
 					when STATE_SEND_PAYLOAD_COUNT =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -660,6 +692,7 @@ begin
 
 					when STATE_SEND_PAYLOAD =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -679,6 +712,7 @@ begin
 						
 					when STATE_SEND_SAMPLE_COUNT =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -708,6 +742,7 @@ begin
 					
 					when STATE_SEND_SAMPLES =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
@@ -740,24 +775,77 @@ begin
 
 					when STATE_SEND_NULL =>
 
+ 						tt_report := tt_report + 1;
 						out_rts <= '1';
 
 						if in_cts = '1' then
 						
-							out_real <= (others => '0');
 							out_imag <= (others => '0');
+							out_real <= (others => '0');
 							out_valid <= '1';
 
 							total_count := total_count + 1;
 								
-							if total_count = 1023 then
+							if total_count = 1020 then
 
-								state := STATE_SEND_PACKET_END;
+								state := STATE_SEND_TT_RX;
 
 							end if;
 
 						end if;
 
+
+					when STATE_SEND_TT_RX =>
+
+ 						tt_report := tt_report + 1;
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= to_signed(tt_rx, 32)(31 downto 16);
+							out_real <= to_signed(tt_rx, 32)(15 downto 0);
+							out_valid <= '1';
+
+							total_count := total_count + 1;
+					
+							state := STATE_SEND_TT_REQ;
+
+						end if;
+
+					when STATE_SEND_TT_REQ =>
+
+ 						tt_report := tt_report + 1;
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= to_signed(tt_req, 32)(31 downto 16);
+							out_real <= to_signed(tt_req, 32)(15 downto 0);
+							out_valid <= '1';
+
+							total_count := total_count + 1;
+					
+							state := STATE_SEND_TT_REPORT;
+
+						end if;
+						
+					when STATE_SEND_TT_REPORT=>
+
+ 						tt_report := tt_report + 1;
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							out_imag <= to_signed(tt_report, 32)(31 downto 16);
+							out_real <= to_signed(tt_report, 32)(15 downto 0);
+							out_valid <= '1';
+
+							total_count := total_count + 1;
+					
+							state := STATE_SEND_PACKET_END;
+
+						end if;
+						
 					when STATE_SEND_PACKET_END =>
 
 						out_rts <= '1';

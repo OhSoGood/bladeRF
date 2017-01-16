@@ -227,7 +227,7 @@ begin
 
 				mux_dch_config <= ( '0', (others => '0'), (others => '0') );
 				ch_in_cts_dch <= (others => '0');
-				old_control := in_control(2);
+				old_control := '0';
 				state_dch := STATE_WAIT_RTS;
 					
 			elsif rising_edge(clock) then
@@ -345,6 +345,16 @@ begin
 						out_imag 					=> 	ch_out_imag(i),
 						out_valid 					=> 	ch_out_valid(i)
 					);	
+
+			else generate
+
+				ch_out_dch_config(i) <= ('0', (others => '0'), (others => '0'));
+				ch_out_rts_dch(i) <= '0';
+				ch_out_rts(i) <= '0';
+				ch_out_real(i) <= (others => '0');
+				ch_out_imag(i) <= (others => '0');
+				ch_out_valid(i) <= '0';
+						
 			end generate;
 		end generate;
 

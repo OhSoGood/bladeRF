@@ -34,7 +34,7 @@ begin
 		begin
 			if reset = '1' then
 
-				bs := std_logic_vector('1' & in_ch_idx);
+				bs := (others => '0');
 				out_seq <= '0';
 				out_valid <= '0';
 				
