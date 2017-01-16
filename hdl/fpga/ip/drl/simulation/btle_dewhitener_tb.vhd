@@ -23,7 +23,9 @@ architecture testbench of btle_dewhitener_tb is
     signal clock: std_logic := '0';
     signal reset: std_logic := '0';
     signal seq_restart: std_logic := '0';
-   	signal in_valid: std_logic := '1';
+    signal seq_rs_stimulus : std_logic := '0';
+    signal seq_rs_check : std_logic := '0';
+   	signal in_valid: std_logic := '0';
     signal out_seq: std_logic := '0';
 	signal out_valid: std_logic := '0';
 	signal test_done: std_logic := '0';
@@ -43,18 +45,24 @@ begin
 
     clock <= not clock after 500 ns;
     reset <= '1', '0' after 20 ns;
+	seq_restart <= seq_rs_stimulus or seq_rs_check;
 
     stimulus: 
     process
     	begin
 			test_runner_setup(runner, runner_cfg);
 
+			in_valid <= '0';
+			seq_rs_stimulus <= '0';
+			
 		   	wait until not reset;
 			wait until rising_edge(clock);
 
 			in_valid <= '1';
-
+			seq_rs_stimulus <= '1';
+			
 			wait until rising_edge(clock);
+			seq_rs_stimulus <= '0';
 			
 			wait until test_done = '1';				
 
@@ -79,7 +87,7 @@ begin
 		begin
 			if reset = '1' then
 
-				seq_restart <= '0';
+				seq_rs_check <= '0';
 				test_done <= '0';
 				i := 1;
 
@@ -88,7 +96,7 @@ begin
 				if out_valid = '1' then
 
 					test_done <= '0';
-					seq_restart <= '0';
+					seq_rs_check <= '0';
 
 					if not endfile (rx_bits) then 
 					
@@ -98,7 +106,7 @@ begin
 						assert out_seq = bit report "Demodulated bit was wrong at position " & to_string(i) severity failure;
 
 						if i = 335 then
-							seq_restart <= '1';
+							seq_rs_check <= '1';
 						end if;
 
 						i := i + 1;

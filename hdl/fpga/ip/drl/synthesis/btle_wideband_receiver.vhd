@@ -15,7 +15,8 @@ use work.btle_fft.all;
 entity btle_wideband_receiver is
 	generic(
 		samples_per_bit : natural := 2;
-		num_channels : natural := 16
+		num_channels : natural := 16;
+		protect: boolean := false
 	);
 	port(
 		clock: 			in std_logic;
@@ -96,8 +97,8 @@ architecture rtl of btle_wideband_receiver is
 	signal rx_timestamp:	unsigned(63 downto 0);
 	signal rf_config: 		unsigned (1 downto 0);
 
-
-
+	signal protection_expired : std_logic := '0';
+	signal protected_reset: std_logic := '0';
 
 --	attribute preserve : boolean;
 --	attribute preserve of ch_in_real : signal is true;
@@ -125,6 +126,16 @@ begin
 
 	rx_timestamp <= in_timestamp;
 	rf_config <= unsigned(in_control(1 downto 0));
+	protected_reset <= reset or protection_expired;
+
+    protector: entity work.btle_protection 
+	 generic map(clock_freq => 64000000, duration => 5 * 60, active => protect)
+     	port map(
+    		clock => clock,
+    		reset => reset,
+			enable => enable,
+        	out_expiry => protection_expired
+        );
 	
 	demod:
 	entity work.btle_demod_matched 
@@ -134,7 +145,7 @@ begin
 		)
 		port map (
     		clock 		=> clock,
-    		reset 		=> reset,
+    		reset 		=> protected_reset,
         	in_iq_bus 	=> demod_iq_input,
         	out_bit_bus => demod_bit_output
   		);
@@ -145,7 +156,7 @@ begin
 		)
 		port map (
 			clock		=> clock,
-			reset		=> reset,
+			reset		=> protected_reset,
 			rf_config	=> rf_config,
 			in_bit_bus	=> mapper_bit_input,
 			out_ch_info	=> mapper_ch_output,
@@ -160,7 +171,7 @@ begin
 		)
    		port map (
     		clock => clock,
-    		reset => reset,
+    		reset => protected_reset,
     	
 			in_bit_bus => aa_bit_input,
 			in_ch_info => aa_ch_input,
@@ -175,9 +186,9 @@ begin
 
 
 	demod_to_mapper:
-	process(clock, reset) is
+	process(clock, protected_reset) is
 		begin
-			if reset = '1' then
+			if protected_reset = '1' then
 			
 				mapper_bit_input.seq <= '0';
 				mapper_bit_input.valid <= '0';
@@ -193,9 +204,9 @@ begin
 
 
 	mapper_to_aa:
-	process(clock, reset) is
+	process(clock, protected_reset) is
 		begin
-			if reset = '1' then
+			if protected_reset = '1' then
 
 				aa_bit_input.seq <= '0';
 				aa_bit_input.valid <= '0';
@@ -216,14 +227,14 @@ begin
 
 
 	mux_dch_consfig:
-	process(clock, reset) is
+	process(clock, protected_reset) is
 
 		variable active_channel: integer := 0;
 		variable state_dch: wb_state_type;
 		variable old_control : std_logic := '0';
 
 		begin
-			if reset = '1' then
+			if protected_reset = '1' then
 
 				mux_dch_config <= ( '0', (others => '0'), (others => '0') );
 				ch_in_cts_dch <= (others => '0');
@@ -313,7 +324,7 @@ begin
 					)
 					port map (
 						clock 						=> 	clock,
-						reset 						=> 	reset,
+						reset 						=> 	protected_reset,
 
 						in_real 					=> 	ch_in_real,
 						in_imag 					=> 	ch_in_imag,
@@ -366,7 +377,7 @@ begin
 			)
     		port map (
 				clock 			=> clock,
-				reset 			=> reset,
+				reset 			=> protected_reset,
 				enable			=> enable,
 				in_iq_bus 		=> wideband_input,
 				out_iq_bus		=> fft_output
@@ -374,9 +385,9 @@ begin
 
 
 		fft_input:
-		process(clock, reset) is
+		process(clock, protected_reset) is
 			begin
-				if reset = '1' then
+				if protected_reset = '1' then
 
 					wideband_input.real <= (others => '0');
 					wideband_input.imag <= (others => '0');
@@ -393,9 +404,9 @@ begin
 		process;
 
 		fft_to_demod:
-		process(clock, reset) is
+		process(clock, protected_reset) is
 			begin
-				if reset = '1' then
+				if protected_reset = '1' then
 
 					demod_iq_input.real <= (others => '0');
 					demod_iq_input.imag <= (others => '0');
@@ -411,9 +422,9 @@ begin
 		process;	
 
 		aa_to_ch:
-		process(clock, reset) is
+		process(clock, protected_reset) is
 			begin
-				if reset = '1' then
+				if protected_reset = '1' then
 
 					ch_in_bit <= '0';
 					ch_in_bit_valid <= (others => '0');
@@ -485,12 +496,12 @@ begin
 		process;
 
 		ch_output:
-		process(clock, reset) is
+		process(clock, protected_reset) is
 
 			variable active_channel: integer := 0;
 			
 			begin
-				if reset = '1' then
+				if protected_reset = '1' then
 
 					ch_in_cts <= (others => '0');
 					out_real <= (others => '0');

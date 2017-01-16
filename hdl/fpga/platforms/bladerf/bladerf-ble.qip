@@ -40,6 +40,8 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel_mapper.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_channel.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_window.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_protection.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_timer.vhd]]
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
