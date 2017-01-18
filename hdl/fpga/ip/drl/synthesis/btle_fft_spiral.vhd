@@ -14,14 +14,14 @@ use work.btle_window.all;
 
 entity btle_fft_spiral is
 	generic (
-		order : integer := 16;
-		fft_window: window_type_t := BTLE_WINDOW_NONE
+		order : integer := 16
 	);
 	port(
 		clock:			in std_logic;
 		reset:			in std_logic;
 		enable:			in std_logic;
 		in_iq_bus:		in iq_bus_t;
+		in_fft_window:  in window_type_t;
 		out_iq_bus:		out tdm_iq_bus_t
 	);
 end btle_fft_spiral;
@@ -114,8 +114,8 @@ begin
 					
 				if in_iq_bus.valid = '1' then
 
-					sample_memory(write_phase).real:= btle_apply_window(fft_window, in_iq_bus.real, write_phase);
-					sample_memory(write_phase).imag:= btle_apply_window(fft_window, in_iq_bus.imag, write_phase);
+					sample_memory(write_phase).real:= btle_apply_window(in_fft_window, in_iq_bus.real, write_phase);
+					sample_memory(write_phase).imag:= btle_apply_window(in_fft_window, in_iq_bus.imag, write_phase);
 					
 					if write_phase = order - 1 then
 						read_phase := 0;

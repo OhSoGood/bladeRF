@@ -99,6 +99,7 @@ architecture rtl of btle_wideband_receiver is
 	signal rf_config: 		unsigned (1 downto 0);
 
 	signal report_opts : btle_control_report_opts_t;
+	signal fft_window : window_type_t;
 
 	signal protection_expired : std_logic := '0';
 	signal protected_reset: std_logic := '0';
@@ -134,6 +135,8 @@ begin
 	report_opts.adv_crc_fail <= in_control(BTLE_CONTROL_REPORT_ADV_CRC_FAILURE);
 	report_opts.data_hdr_fail <= in_control(BTLE_CONTROL_REPORT_DATA_HDR_FAILURE);
 	report_opts.data_crc_fail <= in_control(BTLE_CONTROL_REPORT_DATA_CRC_FAILURE);
+
+	fft_window <= window_type_t'val(to_integer(unsigned(in_control(8 downto 7))));
 
 	protected_reset <= reset or protection_expired;
 
@@ -383,14 +386,14 @@ begin
 		fft : entity work.btle_fft_streamer			
 			generic map (
 				order => num_channels,
-				fft_type => BTLE_FFT_SPIRAL,
-				fft_window => BTLE_WINDOW_HAMMING
+				fft_type => BTLE_FFT_SPIRAL
 			)
     		port map (
 				clock 			=> clock,
 				reset 			=> protected_reset,
 				enable			=> enable,
 				in_iq_bus 		=> wideband_input,
+				in_fft_window   => fft_window,
 				out_iq_bus		=> fft_output
     		);
 

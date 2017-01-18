@@ -9,6 +9,7 @@ use ieee.numeric_std.all;
 use std.textio.all;
 use work.btle_common.all;
 use work.btle_fft.all;
+use work.btle_window.all;
 
 entity btle_fft_streamer_tb is
 	generic(runner_cfg: string);
@@ -49,6 +50,7 @@ begin
 		reset => reset,
 		enable => '1',
 		in_iq_bus => in_iq_bus,
+		in_fft_window => BTLE_WINDOW_NONE,
 		out_iq_bus => out_iq_bus
 	);
 

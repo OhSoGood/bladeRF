@@ -15,14 +15,14 @@ use work.btle_fft.all;
 entity btle_fft_streamer is
 	generic (
 		order : integer;
-		fft_type:   fft_type_t := BTLE_FFT_SPIRAL;
-		fft_window: window_type_t := BTLE_WINDOW_NONE
+		fft_type:   fft_type_t := BTLE_FFT_SPIRAL
 	);
 	port(
 		clock:			in std_logic;
 		reset:			in std_logic;
 		enable:			in std_logic;
 		in_iq_bus:		in iq_bus_t;
+		in_fft_window:  in window_type_t;
 		out_iq_bus:		out tdm_iq_bus_t
 	);
 end btle_fft_streamer;
@@ -38,14 +38,14 @@ fft_selection:
 
 		fft_altera : entity work.btle_fft_altera			
 			generic map (
-				order => order,
-				fft_window => fft_window
+				order => order
 			)
     		port map (
 				clock 			=> clock,
 				reset 			=> reset,
 				enable			=> enable,
 				in_iq_bus 		=> in_iq_bus,
+				in_fft_window   => in_fft_window,
 				out_iq_bus		=> out_iq_bus
     		);
 
@@ -53,14 +53,14 @@ fft_selection:
 	
 		fft_spiral : entity work.btle_fft_spiral			
 			generic map (
-				order => order,
-				fft_window => fft_window
+				order => order
 			)
     		port map (
 				clock 			=> clock,
 				reset 			=> reset,
 				enable			=> enable,
 				in_iq_bus 		=> in_iq_bus,
+				in_fft_window   => in_fft_window,
 				out_iq_bus		=> out_iq_bus
     		);
 
