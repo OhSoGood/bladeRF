@@ -40,7 +40,7 @@ package body btle_window is
 		begin
 
 			if in_win /= BTLE_WINDOW_NONE then
-				windowed := ((in_sample * window_array(window_type_t'pos(in_win))(in_phase)) + 1024) / 2048;
+				windowed := ((in_sample * window_array(window_type_t'pos(in_win))(in_phase)) + 1023) / 2048;
 				result := resize(windowed, result'length);
 			else
 				result := in_sample;		

@@ -53,6 +53,7 @@ package btle_common is
 	subtype sample_t is signed (15 downto 0);
 	subtype timeslot_t is unsigned (4 downto 0);			-- 0..15 TDM
 	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)
+	subtype rssi_t is unsigned (31 downto 0);
 
 	subtype header_bits_t is std_logic_vector (BTLE_HEADER_LEN - 1 downto 0);
 	subtype payload_len_t is unsigned (5 downto 0);
