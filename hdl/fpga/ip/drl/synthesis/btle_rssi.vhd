@@ -7,11 +7,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.btle_common.all;
+use work.btle_channel.all;
 
 entity btle_rssi is
 	generic(
 		samples_per_bit : natural := 2;
-		max_channels : integer := 1
+		max_timeslots : integer := 1
 	);
 	port(
 		clock:			in std_logic;
@@ -28,78 +29,94 @@ end btle_rssi;
 
 architecture rtl of btle_rssi is
 
-
 	subtype accumulator_t is unsigned(33 downto 0);
-	type accumulator_array_t is array (0 to max_channels - 1) of accumulator_t;
+	
+	type rssi_info_t is record
+		accumulator: accumulator_t;
+		clipped: std_logic;
+		count: integer;
+	end record;
+
+	type rssi_info_array_t is array (0 to max_timeslots - 1) of rssi_info_t;
 	
 begin
 	rssi: 
 	process(clock, reset) is		
 
---		type rssi_ch_info_t is record
---
---			ch_idx:		channel_idx_t;
---			adv:		std_logic;
---			valid:		std_logic;
---		end record;
+		type rssi_state_t is ( STATE_NORMAL, STATE_REPORTING );
 
-		variable accumulator: accumulator_array_t;
-		variable clipped: std_logic_vector (max_channels -1 downto 0);
+		variable rssi_state : rssi_state_t;
+		variable rssi_info: rssi_info_array_t;
 		variable scaled_in_real: signed(11 downto 0);
 		variable scaled_in_imag: signed(11 downto 0);	
-		variable count: integer;
-
+		variable report_ts: timeslot_int_t;
+		variable ts_int: timeslot_int_t;
 		
 		begin
 			if reset = '1' then
 
-				for ts in 0 to max_channels - 1 loop
-					accumulator(ts) := (others => '0');
+				for ts in 0 to max_timeslots - 1 loop
+					rssi_info(ts) := ( (others => '0'), '0', 0 );
 				end loop;
 
-				count := 0;
-				clipped := (others => '0');
+				report_ts := 0;
+				rssi_state := STATE_NORMAL;
 				
 				out_valid <= '0';
 				out_timeslot <= (others => '0');
-				out_rssi <= (others => '0');     
+				out_rssi <= (others => '0'); 
+				out_clipped <= '0';
 
 			elsif rising_edge(clock) then
 
 				out_valid <= '0';
 				out_timeslot <= (others => '0');
-				out_rssi <= (others => '0');     
+				out_rssi <= (others => '0');
+				out_clipped <= '0';
 
-				if in_report = '1' then
-				
-					out_timeslot <= (others => '0');
+				if rssi_state = STATE_NORMAL then
 
-					if count /= 0 then
-						out_rssi <= resize((accumulator(0) + (count - 1)) / (2 * count), 32);
-					else
-						out_rssi <= (others => '0');
+					if in_report = '1' then
+						rssi_state := STATE_REPORTING;
+						report_ts := 0;
 					end if;
 
-					out_clipped <= clipped(0);
+				end if;
+
+				if rssi_state = STATE_REPORTING then
+
+					if rssi_info(report_ts).count /= 0 then
+						out_rssi <= resize((rssi_info(report_ts).accumulator + (rssi_info(report_ts).count - 1)) / (2 * rssi_info(report_ts).count), 32);
+					end if;
+
+					out_timeslot <= to_unsigned(report_ts, out_timeslot'length);
+					out_clipped <= rssi_info(report_ts).clipped;
 					out_valid <= '1';
 
-					clipped(0) := '0';
-					accumulator(0) := (others => '0');
-					count := 0;
-					
+					rssi_info(report_ts) := ( (others => '0'), '0', 0 );
+
+					if(report_ts /= max_timeslots - 1) then
+						report_ts := report_ts + 1;
+					else
+						report_ts := 0;
+						rssi_state := STATE_NORMAL;
+					end if;
+
 				end if;
 
 				if in_iq_bus.valid = '1' then
 
-					if in_iq_bus.real >= 2047 or in_iq_bus.real <= -2048 or in_iq_bus.imag >= 2047 or in_iq_bus.imag <= -2048 then
-						clipped(to_integer(in_iq_bus.timeslot)) := '1';
+					ts_int := to_integer(in_iq_bus.timeslot);
+				
+					if in_iq_bus.real >= BTLE_MAX_IQ or in_iq_bus.real <= BTLE_MIN_IQ or in_iq_bus.imag >= BTLE_MAX_IQ or in_iq_bus.imag <= BTLE_MIN_IQ then
+						rssi_info(ts_int).clipped := '1';
 					end if;	
 
-					scaled_in_real := resize(in_iq_bus.real, 12);
-					scaled_in_imag := resize(in_iq_bus.imag, 12);
+					scaled_in_real := resize(in_iq_bus.real, scaled_in_real'length);
+					scaled_in_imag := resize(in_iq_bus.imag, scaled_in_real'length);
 
-					accumulator(to_integer(in_iq_bus.timeslot)) := accumulator(to_integer(in_iq_bus.timeslot)) + unsigned( (scaled_in_real * scaled_in_real) + (scaled_in_imag * scaled_in_imag) );
-					count := count + 1;
+					rssi_info(ts_int).accumulator := rssi_info(ts_int).accumulator + unsigned( (scaled_in_real * scaled_in_real) + (scaled_in_imag * scaled_in_imag) );
+					rssi_info(ts_int).count := rssi_info(ts_int).count + 1;
 					
 				end if;
 			end if;

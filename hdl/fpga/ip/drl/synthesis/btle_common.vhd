@@ -14,6 +14,9 @@ package btle_common is
 	constant BTLE_SAMPLES_PER_SYMBOL : integer := 2;
 	constant BTLE_MAXIMUM_AA_MEMORY : integer := 5;
 
+    constant BTLE_MAX_IQ : integer := 2047;
+    constant BTLE_MIN_IQ : integer := -2048;    
+
 	constant BTLE_ADV_PDU_ADV_IND: integer := 0;
 	constant BTLE_ADV_PDU_DIRECT_IND: integer := 1;
 	constant BTLE_ADV_PDU_NONCONN_IND: integer := 2;
