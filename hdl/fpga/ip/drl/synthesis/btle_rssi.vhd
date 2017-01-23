@@ -19,17 +19,14 @@ entity btle_rssi is
 		reset:			in std_logic;
 		in_iq_bus:		in tdm_iq_bus_t;
 		in_report:      in std_logic;
-		out_valid:      out std_logic;
-		out_timeslot:   out timeslot_t;
-		out_rssi:       out rssi_t;
-		out_clipped:    out std_logic
+		out_results:    out rssi_results_t
 	);
 end btle_rssi;
 
 
 architecture rtl of btle_rssi is
 
-	subtype accumulator_t is unsigned(33 downto 0);
+	subtype accumulator_t is unsigned(43 downto 0);
 	
 	type rssi_info_t is record
 		accumulator: accumulator_t;
@@ -61,18 +58,12 @@ begin
 
 				report_ts := 0;
 				rssi_state := STATE_NORMAL;
-				
-				out_valid <= '0';
-				out_timeslot <= (others => '0');
-				out_rssi <= (others => '0'); 
-				out_clipped <= '0';
+
+				out_results <= ('0', (others => '0'), (others => '0'), '0' );
 
 			elsif rising_edge(clock) then
 
-				out_valid <= '0';
-				out_timeslot <= (others => '0');
-				out_rssi <= (others => '0');
-				out_clipped <= '0';
+				out_results <= ('0', (others => '0'), (others => '0'), '0' );
 
 				if rssi_state = STATE_NORMAL then
 
@@ -86,12 +77,12 @@ begin
 				if rssi_state = STATE_REPORTING then
 
 					if rssi_info(report_ts).count /= 0 then
-						out_rssi <= resize((rssi_info(report_ts).accumulator + (rssi_info(report_ts).count - 1)) / (2 * rssi_info(report_ts).count), 32);
+						out_results.rssi <= resize((rssi_info(report_ts).accumulator + (rssi_info(report_ts).count - 1)) / (2 * rssi_info(report_ts).count), 32);
 					end if;
 
-					out_timeslot <= to_unsigned(report_ts, out_timeslot'length);
-					out_clipped <= rssi_info(report_ts).clipped;
-					out_valid <= '1';
+					out_results.timeslot <= to_unsigned(report_ts, out_results.timeslot'length);
+					out_results.clipped <= rssi_info(report_ts).clipped;
+					out_results.valid <= '1';
 
 					rssi_info(report_ts) := ( (others => '0'), '0', 0 );
 

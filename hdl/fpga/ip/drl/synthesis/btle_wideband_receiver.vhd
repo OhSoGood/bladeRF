@@ -44,12 +44,16 @@ end btle_wideband_receiver;
 
 architecture rtl of btle_wideband_receiver is
 
-	type bus_array is array(num_channels - 1 downto 0) of sample_t;
+	type bus_array is array(num_channels downto 0) of sample_t;
 	type config_array_t is array (num_channels - 1 downto 0) of aa_crc_config_t;
 	
 	type wb_state_type is ( 
 							STATE_WAIT_RTS, 
 							STATE_SENDING );
+
+	signal tick_32m: std_logic;
+	signal tick_2m: std_logic;
+
 	signal state : wb_state_type;
 
 	signal wideband_input : iq_bus_t;
@@ -81,19 +85,18 @@ architecture rtl of btle_wideband_receiver is
 	signal ch_in_aa_detect_results: aa_crc_config_t;
 	signal ch_in_aa_detect_valid:	std_logic_vector(num_channels - 1 downto 0);
 
-
 	signal ch_in_real: 			sample_t;
 	signal ch_in_imag: 			sample_t;
 	signal ch_in_valid:			std_logic_vector(num_channels - 1 downto 0);
-	signal ch_in_cts:			std_logic_vector(num_channels - 1 downto 0);
+	signal ch_in_cts:			std_logic_vector(num_channels downto 0);
 
 	signal ch_in_info:			btle_ch_info_t;
 	signal ch_in_info_valid:		std_logic_vector(num_channels - 1 downto 0);
 
-	signal ch_out_rts:			std_logic_vector(num_channels - 1 downto 0);
+	signal ch_out_rts:			std_logic_vector(num_channels downto 0);
 	signal ch_out_real: 		bus_array;
 	signal ch_out_imag:			bus_array;
-	signal ch_out_valid:    	std_logic_vector(num_channels - 1 downto 0);
+	signal ch_out_valid:    	std_logic_vector(num_channels downto 0);
 
 	signal rx_timestamp:	unsigned(63 downto 0);
 	signal rf_config: 		unsigned (1 downto 0);
@@ -103,6 +106,12 @@ architecture rtl of btle_wideband_receiver is
 
 	signal protection_expired : std_logic := '0';
 	signal protected_reset: std_logic := '0';
+
+    signal wb_rssi_trigger: std_logic;
+    signal nb_rssi_trigger: std_logic;
+    signal wb_rssi_results: rssi_results_t;
+    signal nb_rssi_results: rssi_results_t;
+    
 
 --	attribute preserve : boolean;
 --	attribute preserve of ch_in_real : signal is true;
@@ -137,7 +146,7 @@ begin
 	report_opts.data_crc_fail <= in_control(BTLE_CONTROL_REPORT_DATA_CRC_FAILURE);
 
 	fft_window <= window_type_t'val(to_integer(unsigned(in_control(8 downto 7))));
-
+	
 	protected_reset <= reset or protection_expired;
 
     protector: entity work.btle_protection 
@@ -148,6 +157,53 @@ begin
 			enable => enable,
         	out_expiry => protection_expired
         );
+
+	wrssi:
+	entity work.btle_rssi
+		generic map( 
+			samples_per_bit => 2, 
+			max_timeslots => 1
+		)
+    	port map(
+    		clock => clock,
+    		reset => reset,
+        	in_iq_bus.valid => wideband_input.valid,
+        	in_iq_bus.real => wideband_input.real,
+            in_iq_bus.imag => wideband_input.imag,
+            in_iq_bus.timeslot => (others => '0'),
+			in_report => wb_rssi_trigger,
+			out_results => wb_rssi_results
+ 		);
+
+    rssi_mgr:
+	entity work.btle_rssi_manager
+		generic map(
+			max_timeslots => 1,
+			reports_per_second => 50	
+		)
+		port map(
+			clock			=> clock,
+			reset			=> reset,
+			enable32m		=> tick_32m,
+			enable2m		=> tick_2m,
+
+			in_timestamp	=> rx_timestamp,
+			in_rf_config	=> rf_config,
+		
+			out_trigger_wb	=> wb_rssi_trigger,
+			out_trigger_nb	=> nb_rssi_trigger,
+		
+			in_wb_results   => wb_rssi_results,
+			in_nb_results	=> nb_rssi_results,
+
+			in_cts			=> ch_in_cts(num_channels),
+			out_rts        => ch_out_rts(num_channels),
+
+			out_real		=> ch_out_real(num_channels),
+			out_imag		=> ch_out_imag(num_channels),
+			out_valid		=> ch_out_valid(num_channels)
+		);
+
 	
 	demod:
 	entity work.btle_demod_matched 
@@ -195,7 +251,31 @@ begin
 			out_detect_results => aa_detect_results
 		);
 
+	ticker:
+	process(clock, protected_reset) is
+		begin
+			if protected_reset = '1' then
 
+				tick_32m <= '0';
+				tick_2m <= '0';
+
+			elsif rising_edge(clock) then
+
+				tick_32m <= '0';
+				tick_2m <= '0';
+
+				if wideband_input.valid = '1' then
+					tick_32m <= '1';
+				end if;
+
+				if fft_output.valid = '1' and fft_output.timeslot = to_unsigned(0, 5) then
+					tick_2m <= '1';
+				end if;
+				
+			end if;
+		end
+	process;
+	
 
 	demod_to_mapper:
 	process(clock, protected_reset) is
@@ -535,7 +615,7 @@ begin
 
 						when STATE_WAIT_RTS =>
 
-							for ch in 0 to num_channels - 1 loop
+							for ch in 0 to num_channels loop
 
 								if ch_out_rts(ch) = '1' then
 
@@ -597,8 +677,8 @@ begin
 				in_valid 					=> 	ch_in_valid(0),
 				in_timestamp 				=>	rx_timestamp,
 
-				in_demod_seq 				=> ch_in_bit,
-				in_demod_valid 				=> ch_in_bit_valid(0),
+				in_demod_seq 				=>  ch_in_bit,
+				in_demod_valid 				=>  ch_in_bit_valid(0),
 
 				in_cts 						=> 	ch_in_cts(0),
 				out_rts 					=>	ch_out_rts(0),

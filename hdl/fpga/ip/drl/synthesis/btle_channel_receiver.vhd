@@ -552,8 +552,6 @@ begin
 						
 						if in_cts = '1' then
 
-							--out_imag <= x"0000";	
-
 							out_imag <= signed(resize(in_rf_config, out_imag'length)); 
 							out_real <= signed(resize(in_ch_idx,    out_real'length));			
 							out_valid <= '1';

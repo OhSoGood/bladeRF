@@ -58,6 +58,13 @@ package btle_common is
 	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)
 	subtype rssi_t is unsigned (31 downto 0);
 
+	type rssi_results_t is record
+		valid:      std_logic;
+		timeslot:   timeslot_t;
+		rssi:       rssi_t;
+		clipped:    std_logic;
+	end record;
+
 	subtype header_bits_t is std_logic_vector (BTLE_HEADER_LEN - 1 downto 0);
 	subtype payload_len_t is unsigned (5 downto 0);
 	subtype pdu_llid_type_t is unsigned (3 downto 0);
