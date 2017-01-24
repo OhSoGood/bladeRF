@@ -11,7 +11,6 @@ use work.btle_channel.all;
 
 entity btle_rssi is
 	generic(
-		samples_per_bit : natural := 2;
 		max_timeslots : integer := 1
 	);
 	port(

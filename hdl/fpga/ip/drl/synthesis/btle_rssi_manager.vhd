@@ -66,7 +66,7 @@ begin
 	rssi_trigger: 
 	process(clock, reset) is		
 
-		variable sample_count: integer;
+		variable sample_count: integer := 0;
 		
 		begin
 			if reset = '1' then

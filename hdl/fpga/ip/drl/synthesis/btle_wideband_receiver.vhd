@@ -161,7 +161,6 @@ begin
 	wrssi:
 	entity work.btle_rssi
 		generic map( 
-			samples_per_bit => 2, 
 			max_timeslots => 1
 		)
     	port map(
@@ -264,7 +263,7 @@ begin
 				tick_32m <= '0';
 				tick_2m <= '0';
 
-				if wideband_input.valid = '1' then
+				if in_wb_valid = '1' then
 					tick_32m <= '1';
 				end if;
 
