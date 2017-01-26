@@ -47,6 +47,8 @@ architecture rtl of btle_rssi_manager is
 
 	signal rssi_from_mem : 				std_logic_vector(31 downto 0) := (others => '0');
 	signal rssi_from_mem_rd_addr :		unsigned(9 downto 0) := (others => '0');
+
+	signal rssi_timestamp : 			unsigned (63 downto 0);
 	
 begin
 
@@ -73,7 +75,7 @@ begin
 
 				out_trigger_wb <= '0';
 				out_trigger_nb <= '0';
-
+				rssi_timestamp <= (others => '0');
 				sample_count := 0;
 				
 			elsif rising_edge(clock) then
@@ -88,6 +90,7 @@ begin
 					if sample_count = 640000 - 1 then
 
 						out_trigger_wb <= '1';
+						rssi_timestamp <= in_timestamp;
 						sample_count := 0;
 
 					end if;
@@ -122,16 +125,13 @@ begin
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
 
-		variable rssi_timestamp : unsigned (63 downto 0);
-		
+	
 		variable tt_rx : integer := 0;
 		variable tt_req : integer := 0;
 		variable tt_report : integer := 0;
 		
 		begin
 			if reset = '1' then
-
-				rssi_timestamp := (others => '0');
 
 				sub_count := 0;
 				sub_target := 0;
@@ -164,10 +164,6 @@ begin
 							rssi_to_mem_wr_addr <= to_unsigned(sub_count, rssi_to_mem_wr_addr'length);
 							rssi_to_mem <= std_logic_vector(in_wb_results.clipped & in_wb_results.rssi(30 downto 0));
 							rssi_to_mem_valid <= '1';
-
-							if sub_count = 0 then
-								rssi_timestamp := in_timestamp;
-							end if;
 
 							if sub_count = reports_per_second - 1 then
 

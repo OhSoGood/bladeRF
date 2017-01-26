@@ -158,14 +158,14 @@ begin
         	out_expiry => protection_expired
         );
 
-	wrssi:
+	w_rssi:
 	entity work.btle_rssi
 		generic map( 
 			max_timeslots => 1
 		)
     	port map(
     		clock => clock,
-    		reset => reset,
+    		reset => protected_reset,
         	in_iq_bus.valid => wideband_input.valid,
         	in_iq_bus.real => wideband_input.real,
             in_iq_bus.imag => wideband_input.imag,
@@ -182,7 +182,7 @@ begin
 		)
 		port map(
 			clock			=> clock,
-			reset			=> reset,
+			reset			=> protected_reset,
 			enable32m		=> tick_32m,
 			enable2m		=> tick_2m,
 
