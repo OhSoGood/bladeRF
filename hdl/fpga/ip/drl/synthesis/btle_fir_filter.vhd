@@ -87,8 +87,8 @@ begin
 
            		this_ts := to_integer(in_timeslot);
            	
-                for i in accum'range loop
-                    if i = accum'high then
+                for i in accum(this_ts)'range loop
+                    if i = accum(this_ts)'high then
 
                         accum(this_ts)(i) <= resize(COEF(i)*in_sample, accum(this_ts)(i)'length);
                     else
