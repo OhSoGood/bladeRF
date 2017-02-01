@@ -23,9 +23,6 @@ context vunit_lib.vunit_context;
 
 architecture testbench of btle_fir_filter_tb is
 
-
-    --type real_array_t is array(natural range <>) of real ;
-
 	signal iq_enable: std_logic := '0';
 	signal iq_done: std_logic := '0';
 
@@ -59,7 +56,7 @@ begin
 
     U_filter_re: entity work.btle_fir_filter(systolic)
         generic map (
-            CPS =>  1,
+        	MAX_TIMESLOTS => 16,
             H => FIR_TAPS
         )
         port map(
@@ -68,14 +65,16 @@ begin
 
             in_sample => in_iq_bus.real,
             in_valid => in_iq_bus.valid,
+            in_timeslot => to_unsigned(0, timeslot_t'length),
 
             out_sample => out_iq_bus.real,
-            out_valid => out_iq_bus.valid
+            out_valid => out_iq_bus.valid,
+            out_timeslot => open
         );
         
     U_filter_im: entity work.btle_fir_filter(systolic)
         generic map (
-            CPS =>  1,
+        	MAX_TIMESLOTS => 16,
             H => FIR_TAPS
         )
         port map(
@@ -84,9 +83,11 @@ begin
 
             in_sample => in_iq_bus.imag,
             in_valid => in_iq_bus.valid,
-
+ 			in_timeslot => to_unsigned(0, timeslot_t'length),
+ 			
             out_sample => out_iq_bus.imag,
-            out_valid => open
+            out_valid => open,
+            out_timeslot => open
         );
 
 

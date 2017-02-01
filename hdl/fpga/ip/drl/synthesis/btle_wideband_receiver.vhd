@@ -205,7 +205,7 @@ begin
 
 	
 	demod:
-	entity work.btle_demod_matched 
+	entity work.btle_demod_phase 
 		generic map (
 			samples_per_bit => samples_per_bit, 
 			max_channels => num_channels
