@@ -6,6 +6,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.math_real.all ;
 
 package btle_common is
 
@@ -53,6 +54,9 @@ package btle_common is
 	function reverse_any_vector (a: in std_logic_vector) return std_logic_vector;
 
 	-- Basic types
+
+    type real_array_t is array(natural range <>) of real ;
+	
 	subtype sample_t is signed (15 downto 0);
 	subtype timeslot_t is unsigned (4 downto 0);			-- 0..15 TDM
 	subtype channel_idx_t is unsigned (5 downto 0);			-- 0..36, 37, 38, 39	& 63 (invalid)

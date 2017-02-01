@@ -30,7 +30,7 @@ architecture testbench of btle_rssi_tb is
 
 begin
     duv: entity work.btle_rssi 
-	generic map( samples_per_bit => 2, max_timeslots => 2)
+	generic map( max_timeslots => 2)
     port map(
     	clock => clock,
     	reset => reset,
