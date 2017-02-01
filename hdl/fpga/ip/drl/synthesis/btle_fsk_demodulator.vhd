@@ -114,9 +114,9 @@ begin
 
 				if unwrapped_valid = '1' then
 					if unwrapped_z >= 0 then
-						out_ssd <= '0';
-					else 
 						out_ssd <= '1';
+					else 
+						out_ssd <= '0';
 					end if;
 					out_valid <= '1';
 				end if;

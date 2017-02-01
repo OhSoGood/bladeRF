@@ -27,6 +27,60 @@ architecture rtl of btle_demod_phase is
 	signal filtered_iq_bus: tdm_iq_bus_t;
 	signal decimated_iq_bus: tdm_iq_bus_t;
 
+
+    constant FIR_TAPS2 : real_array_t := (
+0.0,
+-0.000100538344543,
+0.0,
+0.000387037706656,
+0.0,
+-0.001021402764262,
+0.0,
+0.002228554058301,
+0.0,
+-0.004309013739577,
+0.0,
+0.007661071732386,
+0.0,
+-0.012841319952088,
+0.0,
+0.020735593738450,
+0.0,
+-0.033069171276803,
+0.0,
+0.054201906591155,
+0.0,
+-0.100171002350344,
+0.0,
+0.316288048325624,
+0.500000000000000,
+0.316288048325624,
+0.0,
+-0.100171002350344,
+0.0,
+0.054201906591155,
+0.0,
+-0.033069171276803,
+0.0,
+0.020735593738450,
+0.0,
+-0.012841319952088,
+0.0,
+0.007661071732386,
+0.0,
+-0.004309013739577,
+0.0,
+0.002228554058301,
+0.0,
+-0.001021402764262,
+0.0,
+0.000387037706656,
+0.0,
+-0.000100538344543
+);
+
+
+
     constant FIR_TAPS : real_array_t := (
  		-0.0017,	0.0,	0.0029,		0.0,	-0.0067,	0.0,	0.0141,		0.0,	-0.0268,	0.0,	0.0491,		0.0,	-0.0969,	0.0,	0.3156,
 		0.5008,		
@@ -38,7 +92,8 @@ begin
     U_filter_re: entity work.btle_fir_filter(systolic)
         generic map (
         	MAX_TIMESLOTS => max_channels,
-            H => FIR_TAPS
+            H => FIR_TAPS,
+            OUTPUT_SHIFT => 3
         )
         port map(
             clock => clock,
@@ -56,7 +111,8 @@ begin
     U_filter_im: entity work.btle_fir_filter(systolic)
         generic map (
         	MAX_TIMESLOTS => max_channels,
-            H => FIR_TAPS
+            H => FIR_TAPS,
+            OUTPUT_SHIFT => 3
         )
         port map(
             clock => clock,
