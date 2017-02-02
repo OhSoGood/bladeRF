@@ -126,6 +126,9 @@ begin
 
 
 	U_fsk: entity work.btle_fsk_demodulator
+		generic map (
+			MAX_TIMESLOTS => max_channels
+		)
   		port map (
     		clock => clock,
     		reset => reset,
@@ -133,12 +136,12 @@ begin
     		in_real =>  decimated_iq_bus.real,
     		in_imag =>  decimated_iq_bus.imag,
     		in_valid => decimated_iq_bus.valid,
-    		in_timeslot => to_unsigned(0, timeslot_t'length), --decimated_iq_bus.timeslot,
+    		in_timeslot => decimated_iq_bus.timeslot,
 
     		out_ssd => out_bit_bus.seq,
     		out_valid => out_bit_bus.valid,
     		out_timeslot => out_bit_bus.timeslot
-  	);
+  		);
 
 	decimate: 
 	process(clock, reset) is		

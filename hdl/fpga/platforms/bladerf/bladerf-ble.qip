@@ -32,6 +32,8 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_common.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_complex.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_matched.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_demod_phase.vhd]]
+
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_aa_detector.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_dpram.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_dewhitener.vhd]]
@@ -50,6 +52,10 @@ set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_streamer.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_altera.vhd]]
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fft_spiral.vhd]]
+
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fsk_demodulator.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_cordic.vhd]]
+set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/drl/synthesis/btle_fir_filter.vhd]]
 
 set_global_assignment -name VHDL_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-fft-pb.vhd]]
 set_global_assignment -name VERILOG_FILE [file normalize [file join $here ../../ip/spiral/synthesis/spiral-dft-patent.v]]

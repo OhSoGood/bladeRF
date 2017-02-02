@@ -45,6 +45,7 @@ library ieee ;
 
 library work ;
     use work.cordic_p.all ;
+    use work.btle_common.all;
 
 entity cordic is
   port (
@@ -52,7 +53,9 @@ entity cordic is
     reset       :   in  std_logic ;
     mode        :   in  cordic_mode_t ;
     inputs      :   in  cordic_xyz_t ;
-    outputs     :   out cordic_xyz_t
+    outputs     :   out cordic_xyz_t;
+    in_timeslot :   in  timeslot_t;
+    out_timeslot:   out timeslot_t
   ) ;
 end entity ; -- cordic
 
@@ -82,6 +85,7 @@ architecture arch of cordic is
 
     -- ALl the XYZ's for the CORDIC stages
     signal xyzs : xyzs_t ;
+    signal current_timeslot : timeslot_t;
 
 begin
 
@@ -89,10 +93,12 @@ begin
     begin
         if( reset = '1' ) then
             xyzs <= (others =>(x => (others =>'0'), y => (others =>'0'), z => (others =>'0'), valid => '0')) ;
+            current_timeslot <= (others =>'0');
         elsif( rising_edge( clock ) ) then
             -- First stage will rotate the vector to be within -pi/2 to pi/2
             xyzs(0).valid <= inputs.valid ;
             if( inputs.valid = '1' ) then
+            	current_timeslot <= in_timeslot;
                 case mode is
                     when CORDIC_ROTATION =>
                         -- Make sure we're only rotating -pi/2 to pi/2 and adjust accordingly
@@ -159,6 +165,7 @@ begin
 
             -- Output stage
             outputs <= xyzs(xyzs'high) ;
+            out_timeslot <= current_timeslot;
         end if ;
     end process ;
 
