@@ -62,8 +62,6 @@ architecture arch of btle_fsk_demodulator is
 
     signal cordic_inputs: 		cordic_xyz_t ;
     signal cordic_outputs: 		cordic_xyz_t ;
-    signal cordic_timeslot_in:	timeslot_t;
-    signal cordic_timeslot_out:	timeslot_t;
 
     signal unwrapped_valid  : std_logic ;
     signal unwrapped_timeslot : timeslot_t ;
@@ -76,24 +74,21 @@ begin
         reset   => reset,
         mode    => CORDIC_VECTORING,
         inputs  => cordic_inputs,
-        outputs => cordic_outputs,
-        in_timeslot => cordic_timeslot_in,
-        out_timeslot => cordic_timeslot_out
+        outputs => cordic_outputs
       ) ;
 
 	feed_cordic: process(clock, reset)
 	begin
         if( reset = '1' ) then
         
-			cordic_inputs <= ( x => (others =>'0'), y => (others =>'0'), z => (others =>'0'), valid => '0' ) ;
-			cordic_timeslot_in <= (others =>'0');
+			cordic_inputs <= ( x => (others =>'0'), y => (others =>'0'), z => (others =>'0'), valid => '0', timeslot => (others =>'0') ) ;
+
         elsif ( rising_edge( clock ) ) then
 
 			cordic_inputs.valid <= '0';
 			
         	if in_valid = '1' then
-        		cordic_timeslot_in <= in_timeslot;
-				cordic_inputs <= ( x => in_real, y => in_imag, z => (others =>'0'), valid => in_valid ) ;
+				cordic_inputs <= ( x => in_real, y => in_imag, z => (others =>'0'), valid => in_valid, timeslot => in_timeslot) ;
         	end if;
         end if;
 	end process;
@@ -119,9 +114,9 @@ begin
             if( cordic_outputs.valid = '1' ) then
 
 				delta_z_valid <= '1';
-            	delta_z_timeslot <= cordic_timeslot_out;
-            	z_results(to_integer(cordic_timeslot_out)).prev_z <= cordic_outputs.z ;
-                z_results(to_integer(cordic_timeslot_out)).delta_z <= cordic_outputs.z - z_results(to_integer(cordic_timeslot_out)).prev_z ;
+            	delta_z_timeslot <= cordic_outputs.timeslot;
+            	z_results(to_integer(cordic_outputs.timeslot)).prev_z <= cordic_outputs.z ;
+                z_results(to_integer(cordic_outputs.timeslot)).delta_z <= cordic_outputs.z - z_results(to_integer(cordic_outputs.timeslot)).prev_z ;
 
             end if ;
         end if ;

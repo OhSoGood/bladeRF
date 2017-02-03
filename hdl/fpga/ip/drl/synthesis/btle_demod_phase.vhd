@@ -80,18 +80,18 @@ architecture rtl of btle_demod_phase is
 	);
 
 
---    constant FIR_TAPS : real_array_t := (
--- 		-0.0017,	0.0,	0.0029,		0.0,	-0.0067,	0.0,	0.0141,		0.0,	-0.0268,	0.0,	0.0491,		0.0,	-0.0969,	0.0,	0.3156,
---		0.5008,		
---		0.3156,		0.0,   -0.0969,		0.0,	 0.0491,	0.0,	-0.0268,	0.0,	0.0141,		0.0,	-0.0067,	0.0,	 0.0029,	0.0,	-0.0017
---	);
+    constant FIR_TAPS : real_array_t := (
+ 		-0.0017,	0.0,	0.0029,		0.0,	-0.0067,	0.0,	0.0141,		0.0,	-0.0268,	0.0,	0.0491,		0.0,	-0.0969,	0.0,	0.3156,
+		0.5008,		
+		0.3156,		0.0,   -0.0969,		0.0,	 0.0491,	0.0,	-0.0268,	0.0,	0.0141,		0.0,	-0.0067,	0.0,	 0.0029,	0.0,	-0.0017
+	);
 	
 begin
 
     U_filter_re: entity work.btle_fir_filter(systolic)
         generic map (
         	MAX_TIMESLOTS => max_channels,
-            H => FIR_TAPS2
+            H => FIR_TAPS
         )
         port map(
             clock => clock,
@@ -109,7 +109,7 @@ begin
     U_filter_im: entity work.btle_fir_filter(systolic)
         generic map (
         	MAX_TIMESLOTS => max_channels,
-            H => FIR_TAPS2
+            H => FIR_TAPS
         )
         port map(
             clock => clock,

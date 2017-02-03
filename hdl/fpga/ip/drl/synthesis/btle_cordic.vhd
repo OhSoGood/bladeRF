@@ -22,6 +22,9 @@ library ieee ;
     use ieee.std_logic_1164.all ;
     use ieee.numeric_std.all ;
 
+library work;
+	use work.btle_common.all;
+	
 package cordic_p is
 
     -- Vectoring mode forces outputs.y to 0
@@ -34,6 +37,7 @@ package cordic_p is
         y       :   signed(15 downto 0) ;
         z       :   signed(15 downto 0) ;
         valid   :   std_logic ;
+        timeslot:   timeslot_t;
     end record ;
 
 end package ; -- cordic_p
@@ -53,9 +57,7 @@ entity cordic is
     reset       :   in  std_logic ;
     mode        :   in  cordic_mode_t ;
     inputs      :   in  cordic_xyz_t ;
-    outputs     :   out cordic_xyz_t;
-    in_timeslot :   in  timeslot_t;
-    out_timeslot:   out timeslot_t
+    outputs     :   out cordic_xyz_t
   ) ;
 end entity ; -- cordic
 
@@ -85,20 +87,18 @@ architecture arch of cordic is
 
     -- ALl the XYZ's for the CORDIC stages
     signal xyzs : xyzs_t ;
-    signal current_timeslot : timeslot_t;
 
 begin
 
     rotate : process(clock, reset)
     begin
         if( reset = '1' ) then
-            xyzs <= (others =>(x => (others =>'0'), y => (others =>'0'), z => (others =>'0'), valid => '0')) ;
-            current_timeslot <= (others =>'0');
+            xyzs <= (others =>(x => (others =>'0'), y => (others =>'0'), z => (others =>'0'), valid => '0', timeslot => (others => '0'))) ;
         elsif( rising_edge( clock ) ) then
             -- First stage will rotate the vector to be within -pi/2 to pi/2
             xyzs(0).valid <= inputs.valid ;
             if( inputs.valid = '1' ) then
-            	current_timeslot <= in_timeslot;
+                xyzs(0).timeslot <= inputs.timeslot;
                 case mode is
                     when CORDIC_ROTATION =>
                         -- Make sure we're only rotating -pi/2 to pi/2 and adjust accordingly
@@ -137,6 +137,8 @@ begin
             -- Run through all the other stages
             for i in 0 to xyzs'high-1 loop
                 xyzs(i+1).valid <= xyzs(i).valid ;
+                xyzs(i+1).timeslot <= xyzs(i).timeslot ;
+                
                 if( xyzs(i).valid = '1' ) then
                     case mode is
                         when CORDIC_ROTATION =>
@@ -165,7 +167,6 @@ begin
 
             -- Output stage
             outputs <= xyzs(xyzs'high) ;
-            out_timeslot <= current_timeslot;
         end if ;
     end process ;
 
