@@ -39,7 +39,7 @@ entity btle_fsk_demodulator is
     	in_valid    :   in  std_logic ;
     	in_timeslot :   in  timeslot_t;
 
-    	out_ssd     :   out std_logic;
+    	out_symbol  :   out signed(15 downto 0) ;
     	out_valid   :   out std_logic;
     	out_timeslot:   out timeslot_t
   ) ;
@@ -164,26 +164,21 @@ begin
 		begin
         	if( reset = '1' ) then
 
-            	out_ssd <= '0';
+            	out_symbol <= (others => '0');
 				out_valid <= '0';
 				out_timeslot <= (others => '0');
 				
         	elsif( rising_edge( clock ) ) then
 
 				out_valid <= '0';
-
+				
 				if unwrapped_valid = '1' then
 
-					if unwrapped_z(to_integer(unwrapped_timeslot)) >= 0 then
-						out_ssd <= '1';
-					else 
-						out_ssd <= '0';
-					end if;
-
+					out_symbol <= unwrapped_z(to_integer(unwrapped_timeslot));
 					out_timeslot <= unwrapped_timeslot;
 					out_valid <= '1';
-				end if;
-        	
+
+				end if;        	
         	end if;
 		end 
 	process;

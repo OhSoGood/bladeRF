@@ -24,9 +24,15 @@ end btle_demod_phase;
 
 architecture rtl of btle_demod_phase is
 
+	type fsk_demod_output_t is record
+		symbol:   signed(15 downto 0);
+		timeslot: timeslot_t;
+		valid:    std_logic;
+	end record;
+
 	signal filtered_iq_bus: tdm_iq_bus_t;
 	signal decimated_iq_bus: tdm_iq_bus_t;
-
+	signal fsk_output : fsk_demod_output_t;
 
     constant FIR_TAPS2 : real_array_t := (
  		0.0,
@@ -138,9 +144,9 @@ begin
     		in_valid => decimated_iq_bus.valid,
     		in_timeslot => decimated_iq_bus.timeslot,
 
-    		out_ssd => out_bit_bus.seq,
-    		out_valid => out_bit_bus.valid,
-    		out_timeslot => out_bit_bus.timeslot
+    		out_symbol =>   fsk_output.symbol,
+    		out_valid => 	fsk_output.valid,
+    		out_timeslot => fsk_output.timeslot
   		);
 
 	decimate: 
@@ -177,6 +183,36 @@ begin
 					else 
 						phases(this_ts) := phases(this_ts) + 1;
 					end if;	
+				end if;
+			end if;
+		end 
+	process;
+
+
+	output_decision:
+	process(clock, reset) is		
+		begin
+			if reset = '1' then
+
+				out_bit_bus.seq <= '0';
+				out_bit_bus.timeslot <=  (others => '0');
+				out_bit_bus.valid <= '0';
+
+			elsif rising_edge(clock) then
+
+				out_bit_bus.valid <= '0';
+				
+				if fsk_output.valid = '1' then
+
+					if fsk_output.symbol >= 0 then
+						out_bit_bus.seq <= '1';
+					else
+						out_bit_bus.seq <= '0';
+					end if;
+					
+					out_bit_bus.timeslot <= fsk_output.timeslot;
+					out_bit_bus.valid <= '1';
+
 				end if;
 			end if;
 		end 
