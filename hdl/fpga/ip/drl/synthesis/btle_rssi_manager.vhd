@@ -74,14 +74,13 @@ begin
 			if reset = '1' then
 
 				out_trigger_wb <= '0';
-				out_trigger_nb <= '0';
+
 				rssi_timestamp <= (others => '0');
 				sample_count := 0;
 				
 			elsif rising_edge(clock) then
 
 				out_trigger_wb <= '0';
-				out_trigger_nb <= '0';
 
 				if enable32m = '1' then
 
@@ -104,7 +103,8 @@ begin
 	report_fsm:
 	process(clock, reset) is
 
-		type rssi_state_t is (	STATE_COLLECT_WB_REPORTS, 
+		type rssi_state_t is (	STATE_COLLECT_WB_REPORTS,
+								STATE_COLLECT_NB_REPORTS,
 								STATE_WAIT_CTS, 
 								STATE_TRIGGER_HEADER,
 								STATE_SEND_PROTOCOL_VERSION,
@@ -146,6 +146,8 @@ begin
 				rssi_from_mem_rd_addr <= (others => '0');
 				rssi_to_mem_valid <= '0';
 
+				out_trigger_nb <= '0';
+				
 			elsif rising_edge(clock) then
 
 				out_rts   <= '0';
@@ -153,6 +155,7 @@ begin
 				out_imag  <= (others => '0');
 				out_valid <= '0';
 
+				out_trigger_nb <= '0';
 				rssi_to_mem_valid <= '0';
 
 				case state is
@@ -165,27 +168,41 @@ begin
 							rssi_to_mem <= std_logic_vector(in_wb_results.clipped & in_wb_results.rssi(30 downto 0));
 							rssi_to_mem_valid <= '1';
 
-							if sub_count = reports_per_second - 1 then
-
-								out_rts <= '1';
-
-								tt_req := 0;
-								sub_count := 0;
-								total_count := 0;
-								
-								state := STATE_WAIT_CTS;
-				
-							else
-								sub_count := sub_count + 1;
-							end if;
-
+							out_trigger_nb <= '1';
+							state := STATE_COLLECT_NB_REPORTS;
+							
 						end if;
 
-					--when STATE_COLLECT_NB_REPORTS =>
+					when STATE_COLLECT_NB_REPORTS =>
 
+						tt_rx := tt_rx + 1;
+						
+						if in_nb_results.valid = '1' then
+
+							rssi_to_mem_wr_addr <= reports_per_second + (sub_count * max_timeslots) + resize(in_nb_results.timeslot, rssi_to_mem_wr_addr'length);
+							rssi_to_mem <= std_logic_vector(in_nb_results.clipped & in_nb_results.rssi(30 downto 0));
+							rssi_to_mem_valid <= '1';
+
+							if in_nb_results.timeslot = max_timeslots - 1 then
+
+								if sub_count = reports_per_second - 1 then
+
+									out_rts <= '1';
+
+									tt_req := 0;
+									sub_count := 0;
+									total_count := 0;
+								
+									state := STATE_WAIT_CTS;
+				
+								else
+									state := STATE_COLLECT_WB_REPORTS;
+									sub_count := sub_count + 1;
+								end if;
+								
+							end if;
+						end if;
 					
-					--	rssi_to_mem_wr_addr <= reports_per_second + (nb_count * BTLE_FFT_SIZE) + in_nb_results.timeslot;
-
 					when STATE_WAIT_CTS =>
 
  						tt_req := tt_req + 1;
@@ -280,7 +297,7 @@ begin
 							out_valid <= '1';
 
 							sub_count := 0;
-							sub_target := reports_per_second;
+							sub_target := reports_per_second * (max_timeslots + 1);
 							total_count := total_count + 1;
 
 							state := STATE_SEND_WB_REPORTS;
@@ -308,7 +325,7 @@ begin
 							
 						end if;
 
-
+						
 					when STATE_SEND_NULL =>
 
  						tt_report := tt_report + 1;
@@ -337,8 +354,8 @@ begin
 
 						if in_cts = '1' then
 
-							out_imag <= to_signed(0, 32)(31 downto 16);          -- This is unused right now, but useful to keep
-							out_real <= to_signed(0, 32)(15 downto 0);
+							out_imag <= to_signed(tt_rx, 32)(31 downto 16);          -- This is unused right now, but useful to keep
+							out_real <= to_signed(tt_rx, 32)(15 downto 0);
 							out_valid <= '1';
 							total_count := total_count + 1;
 					
@@ -394,6 +411,10 @@ begin
 							total_count := 0;
 							state := STATE_COLLECT_WB_REPORTS;
 
+							tt_rx := 0;
+							tt_req := 0;
+							tt_report := 0;
+
 						end if;
 
 					
@@ -402,6 +423,10 @@ begin
 						sub_count := 0;
 						total_count := 0;
 						state := STATE_COLLECT_WB_REPORTS;
+
+						tt_rx := 0;
+						tt_req := 0;
+						tt_report := 0;
 				end case;
 
 			end if;

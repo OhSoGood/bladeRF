@@ -174,10 +174,26 @@ begin
 			out_results => wb_rssi_results
  		);
 
+	n_rssi:
+	entity work.btle_rssi
+		generic map( 
+			max_timeslots => num_channels
+		)
+    	port map(
+    		clock => clock,
+    		reset => protected_reset,
+        	in_iq_bus.valid => fft_output.valid,
+        	in_iq_bus.real => fft_output.real,
+            in_iq_bus.imag => fft_output.imag,
+            in_iq_bus.timeslot => fft_output.timeslot,
+			in_report => nb_rssi_trigger,
+			out_results => nb_rssi_results
+ 		);	
+
     rssi_mgr:
 	entity work.btle_rssi_manager
 		generic map(
-			max_timeslots => 1,
+			max_timeslots => num_channels,
 			reports_per_second => 50	
 		)
 		port map(
@@ -196,7 +212,7 @@ begin
 			in_nb_results	=> nb_rssi_results,
 
 			in_cts			=> ch_in_cts(num_channels),
-			out_rts        => ch_out_rts(num_channels),
+			out_rts         => ch_out_rts(num_channels),
 
 			out_real		=> ch_out_real(num_channels),
 			out_imag		=> ch_out_imag(num_channels),
@@ -205,7 +221,7 @@ begin
 
 	
 	demod:
-	entity work.btle_demod_phase 
+	entity work.btle_demod_matched 
 		generic map (
 			samples_per_bit => samples_per_bit, 
 			max_channels => num_channels
