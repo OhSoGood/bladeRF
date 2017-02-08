@@ -194,7 +194,8 @@ begin
 	entity work.btle_rssi_manager
 		generic map(
 			max_timeslots => num_channels,
-			reports_per_second => 50	
+			reports_per_second => 2,
+			meas_per_report => 50	
 		)
 		port map(
 			clock			=> clock,

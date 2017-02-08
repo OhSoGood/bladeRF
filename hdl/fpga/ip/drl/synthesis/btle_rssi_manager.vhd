@@ -12,7 +12,8 @@ use work.btle_channel.all;
 entity btle_rssi_manager is
 	generic(
 		max_timeslots : integer := 1;
-		reports_per_second : integer := 50	
+		reports_per_second : integer := 2;
+		meas_per_report: integer := 50
 	);
 	port(
 		clock:			in std_logic;
@@ -49,7 +50,8 @@ architecture rtl of btle_rssi_manager is
 	signal rssi_from_mem_rd_addr :		unsigned(9 downto 0) := (others => '0');
 
 	signal rssi_timestamp : 			unsigned (63 downto 0);
-	
+
+	constant trigger_count : integer := 32000000 / (reports_per_second * meas_per_report);
 begin
 
 	rssi_memory:
@@ -84,16 +86,17 @@ begin
 
 				if enable32m = '1' then
 
-					sample_count := sample_count + 1;
-
-					if sample_count = 640000 - 1 then
+					if sample_count = trigger_count - 1 then
 
 						out_trigger_wb <= '1';
 						rssi_timestamp <= in_timestamp;
 						sample_count := 0;
 
-					end if;
+					else
 
+						sample_count := sample_count + 1;
+
+					end if;
 				end if;
 			end if;
 		end 
@@ -103,7 +106,8 @@ begin
 	report_fsm:
 	process(clock, reset) is
 
-		type rssi_state_t is (	STATE_COLLECT_WB_REPORTS,
+		type rssi_state_t is (	STATE_RESET,
+								STATE_COLLECT_WB_REPORTS,
 								STATE_COLLECT_NB_REPORTS,
 								STATE_WAIT_CTS, 
 								STATE_TRIGGER_HEADER,
@@ -119,13 +123,12 @@ begin
 								STATE_SEND_TT_REPORT,
 								STATE_SEND_PACKET_END );
 
-		variable state : rssi_state_t := STATE_COLLECT_WB_REPORTS;
+		variable state : rssi_state_t := STATE_RESET;
 
 		variable sub_count: integer := 0;
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
 
-	
 		variable tt_rx : integer := 0;
 		variable tt_req : integer := 0;
 		variable tt_report : integer := 0;
@@ -147,6 +150,8 @@ begin
 				rssi_to_mem_valid <= '0';
 
 				out_trigger_nb <= '0';
+
+				state := STATE_RESET;
 				
 			elsif rising_edge(clock) then
 
@@ -159,6 +164,16 @@ begin
 				rssi_to_mem_valid <= '0';
 
 				case state is
+
+					when STATE_RESET =>
+
+						tt_rx := 0;
+						tt_req := 0;
+						tt_report := 0;
+						sub_count := 0;
+						total_count := 0;
+
+						state := STATE_COLLECT_WB_REPORTS;
 				
 					when STATE_COLLECT_WB_REPORTS =>
 
@@ -179,13 +194,13 @@ begin
 						
 						if in_nb_results.valid = '1' then
 
-							rssi_to_mem_wr_addr <= reports_per_second + (sub_count * max_timeslots) + resize(in_nb_results.timeslot, rssi_to_mem_wr_addr'length);
+							rssi_to_mem_wr_addr <= meas_per_report + (sub_count * max_timeslots) + resize(in_nb_results.timeslot, rssi_to_mem_wr_addr'length);
 							rssi_to_mem <= std_logic_vector(in_nb_results.clipped & in_nb_results.rssi(30 downto 0));
 							rssi_to_mem_valid <= '1';
 
 							if in_nb_results.timeslot = max_timeslots - 1 then
 
-								if sub_count = reports_per_second - 1 then
+								if sub_count = meas_per_report - 1 then
 
 									out_rts <= '1';
 
@@ -292,12 +307,12 @@ begin
 						
 						if in_cts = '1' then
 
-							out_imag <= to_signed(reports_per_second, 32)(31 downto 16);			
-							out_real <= to_signed(reports_per_second, 32)(15 downto 0);			
+							out_imag <= to_signed(reports_per_second, 16);		
+							out_real <= to_signed(meas_per_report, 16);		
 							out_valid <= '1';
 
 							sub_count := 0;
-							sub_target := reports_per_second * (max_timeslots + 1);
+							sub_target := meas_per_report * (max_timeslots + 1);
 							total_count := total_count + 1;
 
 							state := STATE_SEND_WB_REPORTS;
@@ -407,26 +422,14 @@ begin
 							out_real <= x"5555";								
 							out_valid <= '1';
 
-							sub_count := 0;
-							total_count := 0;
-							state := STATE_COLLECT_WB_REPORTS;
-
-							tt_rx := 0;
-							tt_req := 0;
-							tt_report := 0;
+							state := STATE_RESET;
 
 						end if;
 
-					
 					when others =>
 
-						sub_count := 0;
-						total_count := 0;
-						state := STATE_COLLECT_WB_REPORTS;
+						state := STATE_RESET;
 
-						tt_rx := 0;
-						tt_req := 0;
-						tt_report := 0;
 				end case;
 
 			end if;
