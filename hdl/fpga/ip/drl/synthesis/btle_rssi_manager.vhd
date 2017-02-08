@@ -116,7 +116,8 @@ begin
 								STATE_SEND_TIMESTAMP1,
 								STATE_SEND_TIMESTAMP2,
 							    STATE_SEND_WB_REPORT_COUNT,
-								STATE_SEND_WB_REPORTS,
+							    STATE_SETUP_REPORT_READ,
+								STATE_SEND_REPORTS,
 								STATE_SEND_NULL,
 								STATE_SEND_TT_RX,
 								STATE_SEND_TT_REQ,
@@ -128,6 +129,7 @@ begin
 		variable sub_count: integer := 0;
 		variable sub_target : integer := 0;
 		variable total_count : integer := 0;
+		variable addr_count : integer := 0;
 
 		variable tt_rx : integer := 0;
 		variable tt_req : integer := 0;
@@ -172,7 +174,8 @@ begin
 						tt_report := 0;
 						sub_count := 0;
 						total_count := 0;
-
+						addr_count := 0;
+						
 						state := STATE_COLLECT_WB_REPORTS;
 				
 					when STATE_COLLECT_WB_REPORTS =>
@@ -207,6 +210,7 @@ begin
 									tt_req := 0;
 									sub_count := 0;
 									total_count := 0;
+									addr_count := 0;
 								
 									state := STATE_WAIT_CTS;
 				
@@ -315,20 +319,38 @@ begin
 							sub_target := meas_per_report * (max_timeslots + 1);
 							total_count := total_count + 1;
 
-							state := STATE_SEND_WB_REPORTS;
+							state := STATE_SETUP_REPORT_READ;
 						end if;				
 
-					when STATE_SEND_WB_REPORTS =>
+					when STATE_SETUP_REPORT_READ =>
+
+					 	tt_report := tt_report + 1;
+						out_rts <= '1';
+
+						if in_cts = '1' then
+
+							rssi_from_mem_rd_addr <= to_unsigned(addr_count, rssi_from_mem_rd_addr'length);
+							addr_count := addr_count + 1;
+
+							-- Two cycle latency between setting up the read address and getting the results
+							-- A lesson hard learned!
+							if addr_count = 2 then
+								state := STATE_SEND_REPORTS;
+							end if;
+						end if;
+
+					when STATE_SEND_REPORTS =>
 
  						tt_report := tt_report + 1;
 						out_rts <= '1';
-						
+
 						if in_cts = '1' then
 
-							rssi_from_mem_rd_addr <= to_unsigned(sub_count, rssi_from_mem_rd_addr'length);
+							rssi_from_mem_rd_addr <= to_unsigned(addr_count, rssi_from_mem_rd_addr'length);
+							addr_count := addr_count + 1;
 
 							out_imag <= signed(rssi_from_mem(31 downto 16));
-							out_real <= signed(rssi_from_mem(15 downto 0));			
+							out_real <= signed(rssi_from_mem(15 downto 0));	
 							out_valid <= '1';
 
 							sub_count := sub_count + 1;
