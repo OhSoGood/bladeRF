@@ -56,7 +56,7 @@ architecture rtl of btle_wideband_receiver is
 
 	signal state : wb_state_type;
 
-	signal wideband_input : iq_bus_t;
+	signal dc_output : iq_bus_t;
 	signal fft_output: tdm_iq_bus_t;
 
 	signal demod_iq_input: tdm_iq_bus_t;
@@ -158,6 +158,20 @@ begin
         	out_expiry => protection_expired
         );
 
+	dc: entity work.btle_dc
+		generic map (
+			LENGTH => 2 ** 16,
+			ACCUM => 32
+		)
+		port map (
+			clock 			=> clock,
+			reset 			=> protected_reset,
+			in_iq_bus.real  => in_wb_real,
+			in_iq_bus.imag  => in_wb_imag,
+			in_iq_bus.valid => in_wb_valid,
+			out_iq_bus      => dc_output
+		);
+
 	w_rssi:
 	entity work.btle_rssi
 		generic map( 
@@ -166,9 +180,9 @@ begin
     	port map(
     		clock => clock,
     		reset => protected_reset,
-        	in_iq_bus.valid => wideband_input.valid,
-        	in_iq_bus.real => wideband_input.real,
-            in_iq_bus.imag => wideband_input.imag,
+        	in_iq_bus.valid => dc_output.valid,
+        	in_iq_bus.real => dc_output.real,
+            in_iq_bus.imag => dc_output.imag,
             in_iq_bus.timeslot => (others => '0'),
 			in_report => wb_rssi_trigger,
 			out_results => wb_rssi_results
@@ -334,7 +348,7 @@ begin
 	process;	
 
 
-	mux_dch_consfig:
+	mux_dch_process:
 	process(clock, protected_reset) is
 
 		variable active_channel: integer := 0;
@@ -488,30 +502,11 @@ begin
 				clock 			=> clock,
 				reset 			=> protected_reset,
 				enable			=> enable,
-				in_iq_bus 		=> wideband_input,
+				in_iq_bus	    => dc_output,
 				in_fft_window   => fft_window,
 				out_iq_bus		=> fft_output
     		);
 
-
-		fft_input:
-		process(clock, protected_reset) is
-			begin
-				if protected_reset = '1' then
-
-					wideband_input.real <= (others => '0');
-					wideband_input.imag <= (others => '0');
-					wideband_input.valid <= '0';
-
-				elsif rising_edge(clock) then
-
-					wideband_input.real <= in_wb_real;
-					wideband_input.imag <= in_wb_imag;
-					wideband_input.valid <= in_wb_valid;
-					
-				end if;
-			end
-		process;
 
 		fft_to_demod:
 		process(clock, protected_reset) is
@@ -734,9 +729,9 @@ begin
 
 				elsif rising_edge(clock) then
 
-					demod_iq_input.real  <= in_wb_real;
-					demod_iq_input.imag  <= in_wb_imag;
-					demod_iq_input.valid <= in_wb_valid;
+					demod_iq_input.real  <= dc_output.real;
+					demod_iq_input.imag  <= dc_output.imag;
+					demod_iq_input.valid <= dc_output.valid;
 					demod_iq_input.timeslot <= (others => '0');
 					
 				end if;
