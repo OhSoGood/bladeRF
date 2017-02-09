@@ -76,8 +76,6 @@ begin
 			if reset = '1' then
 
 				out_trigger_wb <= '0';
-
-				rssi_timestamp <= (others => '0');
 				sample_count := 0;
 				
 			elsif rising_edge(clock) then
@@ -87,16 +85,12 @@ begin
 				if enable32m = '1' then
 
 					if sample_count = trigger_count - 1 then
-
 						out_trigger_wb <= '1';
-						rssi_timestamp <= in_timestamp;
 						sample_count := 0;
-
 					else
-
 						sample_count := sample_count + 1;
-
 					end if;
+					
 				end if;
 			end if;
 		end 
@@ -153,6 +147,7 @@ begin
 
 				out_trigger_nb <= '0';
 
+				rssi_timestamp <= (others => '0');
 				state := STATE_RESET;
 				
 			elsif rising_edge(clock) then
@@ -182,6 +177,10 @@ begin
 
 						if in_wb_results.valid = '1' then
 
+							if sub_count = 0 then
+								rssi_timestamp <= in_timestamp;
+							end if;
+							
 							rssi_to_mem_wr_addr <= to_unsigned(sub_count, rssi_to_mem_wr_addr'length);
 							rssi_to_mem <= std_logic_vector(in_wb_results.clipped & in_wb_results.rssi(30 downto 0));
 							rssi_to_mem_valid <= '1';

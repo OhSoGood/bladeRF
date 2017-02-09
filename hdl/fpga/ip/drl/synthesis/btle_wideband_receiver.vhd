@@ -62,12 +62,8 @@ architecture rtl of btle_wideband_receiver is
 	signal demod_iq_input: tdm_iq_bus_t;
 	signal demod_bit_output: tdm_bit_bus_t;
 
-	signal mapper_bit_input: tdm_bit_bus_t;
 	signal mapper_bit_output: tdm_bit_bus_t;
 	signal mapper_ch_output: btle_ch_info_t;
-
-	signal aa_bit_input: tdm_bit_bus_t;
-	signal aa_ch_input: btle_ch_info_t;
 
 	signal aa_bit_output: tdm_bit_bus_t;
 	signal aa_ch_output: btle_ch_info_t;
@@ -107,6 +103,7 @@ architecture rtl of btle_wideband_receiver is
 	signal protection_expired : std_logic := '0';
 	signal protected_reset: std_logic := '0';
 
+	signal wb_rssi_clipped: std_logic;
     signal wb_rssi_trigger: std_logic;
     signal nb_rssi_trigger: std_logic;
     signal wb_rssi_results: rssi_results_t;
@@ -169,6 +166,7 @@ begin
 			in_iq_bus.real  => in_wb_real,
 			in_iq_bus.imag  => in_wb_imag,
 			in_iq_bus.valid => in_wb_valid,
+			out_clipped     => wb_rssi_clipped,
 			out_iq_bus      => dc_output
 		);
 
@@ -185,6 +183,7 @@ begin
             in_iq_bus.imag => dc_output.imag,
             in_iq_bus.timeslot => (others => '0'),
 			in_report => wb_rssi_trigger,
+			in_clipped => wb_rssi_clipped,
 			out_results => wb_rssi_results
  		);
 
@@ -201,6 +200,7 @@ begin
             in_iq_bus.imag => fft_output.imag,
             in_iq_bus.timeslot => fft_output.timeslot,
 			in_report => nb_rssi_trigger,
+			in_clipped => '0',
 			out_results => nb_rssi_results
  		);	
 
@@ -256,7 +256,7 @@ begin
 			clock		=> clock,
 			reset		=> protected_reset,
 			rf_config	=> rf_config,
-			in_bit_bus	=> mapper_bit_input,
+			in_bit_bus	=> demod_bit_output,
 			out_ch_info	=> mapper_ch_output,
 			out_bit_bus	=> mapper_bit_output
 		);
@@ -271,8 +271,8 @@ begin
     		clock => clock,
     		reset => protected_reset,
     	
-			in_bit_bus => aa_bit_input,
-			in_ch_info => aa_ch_input,
+			in_bit_bus => mapper_bit_output,
+			in_ch_info => mapper_ch_output,
 
 			in_data_ch_cfg => mux_dch_config,
 
@@ -306,47 +306,6 @@ begin
 		end
 	process;
 	
-
-	demod_to_mapper:
-	process(clock, protected_reset) is
-		begin
-			if protected_reset = '1' then
-			
-				mapper_bit_input.seq <= '0';
-				mapper_bit_input.valid <= '0';
-				mapper_bit_input.timeslot <= (others => '0');
-
-			elsif rising_edge(clock) then
-
-				mapper_bit_input <= demod_bit_output;
-				
-			end if;
-		end
-	process;	
-
-
-	mapper_to_aa:
-	process(clock, protected_reset) is
-		begin
-			if protected_reset = '1' then
-
-				aa_bit_input.seq <= '0';
-				aa_bit_input.valid <= '0';
-				aa_bit_input.timeslot <= (others => '0');
-
-				aa_ch_input.ch_idx <= to_unsigned(BTLE_CHANNEL_INVALID, aa_ch_input.ch_idx'length);
-				aa_ch_input.adv <= '0';
-				aa_ch_input.valid <= '0';
-
-			elsif rising_edge(clock) then
-
-				aa_bit_input <= mapper_bit_output;
-				aa_ch_input <= mapper_ch_output;
-					
-			end if;
-		end
-	process;	
-
 
 	mux_dch_process:
 	process(clock, protected_reset) is

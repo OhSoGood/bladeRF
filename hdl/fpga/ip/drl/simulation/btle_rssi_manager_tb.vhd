@@ -52,6 +52,7 @@ begin
             in_iq_bus.imag => wideband_input.imag,
             in_iq_bus.timeslot => (others => '0'),
 			in_report => wb_rssi_trigger,
+			in_clipped => '0',
 			out_results => wb_rssi_results
  		);
 
@@ -68,6 +69,7 @@ begin
             in_iq_bus.imag => fft_output.imag,
             in_iq_bus.timeslot => fft_output.timeslot,
 			in_report => nb_rssi_trigger,
+			in_clipped => '0',
 			out_results => nb_rssi_results
  		);	
 
@@ -180,7 +182,8 @@ begin
 	 		wideband_input.imag <= to_signed(10, wideband_input.imag'length);
 	 		wideband_input.valid <= '1';	
 
-			for i in 0 to 64000000 loop
+			--for i in 0 to 64000000 loop
+			for i in 0 to 640000 loop
 				wait until rising_edge(clock);
 			end loop;
 

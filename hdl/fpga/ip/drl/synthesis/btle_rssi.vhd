@@ -17,6 +17,7 @@ entity btle_rssi is
 		clock:			in std_logic;
 		reset:			in std_logic;
 		in_iq_bus:		in tdm_iq_bus_t;
+		in_clipped:     in std_logic;
 		in_report:      in std_logic;
 		out_results:    out rssi_results_t
 	);
@@ -98,10 +99,7 @@ begin
 
 					ts_int := to_integer(in_iq_bus.timeslot);
 				
-					if in_iq_bus.real >= BTLE_MAX_IQ or in_iq_bus.real <= BTLE_MIN_IQ or in_iq_bus.imag >= BTLE_MAX_IQ or in_iq_bus.imag <= BTLE_MIN_IQ then
-						rssi_info(ts_int).clipped := '1';
-					end if;	
-
+					rssi_info(ts_int).clipped := in_clipped;
 					scaled_in_real := resize(in_iq_bus.real, scaled_in_real'length);
 					scaled_in_imag := resize(in_iq_bus.imag, scaled_in_real'length);
 

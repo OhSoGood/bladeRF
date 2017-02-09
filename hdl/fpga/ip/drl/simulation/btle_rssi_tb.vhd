@@ -40,6 +40,7 @@ begin
        	in_iq_bus.imag => in_bus.imag,
        	in_iq_bus.timeslot => to_unsigned(0, 5),
 		in_report => in_report,
+		in_clipped => '0',
 		out_results => out_results
  	);
 
