@@ -53,6 +53,7 @@ begin
             in_iq_bus.timeslot => (others => '0'),
 			in_report => wb_rssi_trigger,
 			in_clipped => '0',
+			in_detect => '0',
 			out_results => wb_rssi_results
  		);
 
@@ -70,6 +71,7 @@ begin
             in_iq_bus.timeslot => fft_output.timeslot,
 			in_report => nb_rssi_trigger,
 			in_clipped => '0',
+			in_detect => '0',
 			out_results => nb_rssi_results
  		);	
 

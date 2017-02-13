@@ -182,7 +182,7 @@ begin
 							end if;
 							
 							rssi_to_mem_wr_addr <= to_unsigned(sub_count, rssi_to_mem_wr_addr'length);
-							rssi_to_mem <= std_logic_vector(in_wb_results.clipped & in_wb_results.rssi(30 downto 0));
+							rssi_to_mem <= std_logic_vector(in_wb_results.clipped & in_wb_results.detections & in_wb_results.rssi(24 downto 0));
 							rssi_to_mem_valid <= '1';
 
 							out_trigger_nb <= '1';

@@ -67,6 +67,7 @@ package btle_common is
 		timeslot:   timeslot_t;
 		rssi:       rssi_t;
 		clipped:    std_logic;
+		detections: unsigned(5 downto 0);
 	end record;
 
 	subtype header_bits_t is std_logic_vector (BTLE_HEADER_LEN - 1 downto 0);

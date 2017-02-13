@@ -18,6 +18,7 @@ entity btle_rssi is
 		reset:			in std_logic;
 		in_iq_bus:		in tdm_iq_bus_t;
 		in_clipped:     in std_logic;
+		in_detect:      in std_logic;
 		in_report:      in std_logic;
 		out_results:    out rssi_results_t
 	);
@@ -32,6 +33,7 @@ architecture rtl of btle_rssi is
 		accumulator: accumulator_t;
 		clipped: std_logic;
 		count: integer;
+		detections: integer;
 	end record;
 
 	type rssi_info_array_t is array (0 to max_timeslots - 1) of rssi_info_t;
@@ -53,17 +55,18 @@ begin
 			if reset = '1' then
 
 				for ts in 0 to max_timeslots - 1 loop
-					rssi_info(ts) := ( (others => '0'), '0', 0 );
+					rssi_info(ts) := ( (others => '0'), '0', 0, 0 );
 				end loop;
 
 				report_ts := 0;
 				rssi_state := STATE_NORMAL;
 
-				out_results <= ('0', (others => '0'), (others => '0'), '0' );
+				out_results <= ('0', (others => '0'), (others => '0'), '0', (others => '0') );
 
 			elsif rising_edge(clock) then
 
-				out_results <= ('0', (others => '0'), (others => '0'), '0' );
+				ts_int := to_integer(in_iq_bus.timeslot);
+				out_results <= ('0', (others => '0'), (others => '0'), '0', (others => '0') );
 
 				if rssi_state = STATE_NORMAL then
 
@@ -83,8 +86,9 @@ begin
 					out_results.timeslot <= to_unsigned(report_ts, out_results.timeslot'length);
 					out_results.clipped <= rssi_info(report_ts).clipped;
 					out_results.valid <= '1';
-
-					rssi_info(report_ts) := ( (others => '0'), '0', 0 );
+					out_results.detections <= to_unsigned(rssi_info(report_ts).detections, out_results.detections'length);
+					
+					rssi_info(report_ts) := ( (others => '0'), '0', 0, 0 );
 
 					if(report_ts /= max_timeslots - 1) then
 						report_ts := report_ts + 1;
@@ -96,8 +100,6 @@ begin
 				end if;
 
 				if in_iq_bus.valid = '1' then
-
-					ts_int := to_integer(in_iq_bus.timeslot);
 				
 					rssi_info(ts_int).clipped := in_clipped;
 					scaled_in_real := resize(in_iq_bus.real, scaled_in_real'length);
@@ -107,10 +109,12 @@ begin
 					rssi_info(ts_int).count := rssi_info(ts_int).count + 1;
 					
 				end if;
+
+				if in_detect = '1' then
+					rssi_info(ts_int).detections := rssi_info(ts_int).detections + 1;
+				end if;
 			end if;
 		end 
 	process;
-
-	
 end rtl;
 
